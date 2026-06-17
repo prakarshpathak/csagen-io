@@ -50,6 +50,24 @@
   .prio input{font-size:12px}
   .prioHdr{display:grid;grid-template-columns:90px 1fr 1fr;gap:8px;font-size:11px;color:var(--muted);margin:6px 0}
   .flag{background:#2a2030;border:1px solid #5b3a6b;border-radius:7px;padding:10px 12px;font-size:12px;color:#d9c2e8;margin:10px 0;line-height:1.5}
+  .ro{background:#15151f;border:1px solid var(--line);border-radius:6px;color:var(--muted);padding:9px 10px;font-size:13px}
+  .ro b{color:var(--txt)}
+  .adminbadge{background:#b45309;color:#fff;font-size:11px;font-weight:bold;padding:4px 9px;border-radius:6px;letter-spacing:.04em}
+  .acc.admin{border-color:#b45309}
+  .acc.admin .acc-head{background:#3a2a12}
+  .acc.admin .acc-head .num{color:#fbbf24}
+  .calc{background:#10160f;border:1px solid #2c4a2c;border-radius:8px;padding:12px;margin-top:10px}
+  .calc .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin:5px 0;color:var(--muted)}
+  .calc .row .v{font-weight:bold;font-variant-numeric:tabular-nums}
+  .calc .pos .v{color:#4ade80}
+  .calc .neg .v{color:#f87171}
+  .calc .big{font-size:15px;border-top:1px solid #2c4a2c;padding-top:7px;margin-top:7px;color:var(--txt)}
+  .btn-send{background:#16a34a;color:#fff}
+  .btn-send:hover{background:#15803d}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:560px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 34px rgba(0,0,0,.55);z-index:100;font-size:13px;color:var(--txt)}
+  .toast.hidden{display:none}
+  .toast button{padding:7px 12px;font-size:12px}
+  @media print{.topbar,.toast{display:none!important}}
 
   /* ===== Document preview / export styling ===== */
   .docwrap{background:#fff;color:#111127;max-width:8.5in;margin:0 auto;padding:0.85in 0.85in 0.7in;box-shadow:0 6px 30px rgba(0,0,0,.4);font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.5}
@@ -111,11 +129,13 @@
   <div style="display:flex;align-items:center;gap:16px">
     <div class="brand" title="io.net"><svg class="brandlogo" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="73.54 456.73 683.41 108.44" enable-background="new 0 0 816 1024" xml:space="preserve"><path fill="currentColor" opacity="1.000000" stroke="none" d=" M480.688293,556.451233 C477.719696,553.487183 475.256317,550.478088 472.281677,548.111816 C468.035187,544.733704 466.895874,540.350037 466.943909,535.328979 C466.955048,534.163147 467.112946,532.974854 466.945404,531.834900 C465.246674,520.277344 469.166656,511.315186 478.199341,503.767853 C482.618988,500.075012 486.891663,497.991821 492.478577,498.066925 C506.629852,498.257141 520.782288,498.280975 534.934692,498.484680 C555.241638,498.777039 575.560425,498.191681 595.874695,498.045868 C604.359192,497.984985 605.001831,498.695923 605.010437,507.060883 C605.014221,510.725037 604.902710,514.394165 605.056396,518.052002 C605.228088,522.136292 603.121399,523.809326 599.355225,523.957581 C597.691895,524.023071 596.025269,524.028320 594.360168,524.026123 C562.381531,523.983032 530.402771,523.970337 498.424438,523.835876 C494.988007,523.821411 492.769226,523.966003 492.921844,528.477661 C493.058350,532.512634 494.223724,534.087280 498.404297,534.070862 C529.882996,533.947510 561.362244,533.989075 592.841370,533.984192 C595.006226,533.983826 597.171570,534.004028 599.335876,534.050720 C603.146606,534.132935 605.172729,535.852234 605.061584,539.912048 C604.929504,544.738464 604.946655,549.573608 605.068726,554.400696 C605.159119,557.976807 603.366333,559.600464 600.029846,559.872375 C598.704346,559.980469 597.367981,559.990967 596.036682,559.989075 C561.403931,559.940125 526.771790,559.223572 492.138397,559.893250 C488.081635,559.971680 484.104919,559.801941 480.688293,556.451233 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M345.993835,553.766846 C346.294250,558.285767 344.209534,560.011475 340.327759,559.982727 C334.999817,559.943176 329.670990,559.958252 324.344177,559.859619 C320.824310,559.794495 318.846100,558.279175 318.862183,554.367126 C318.956635,531.385498 318.901367,508.403168 318.981354,485.421387 C318.996307,481.123718 320.908417,477.757690 323.738678,474.325043 C331.595673,464.795776 340.784210,461.624237 353.423492,462.218994 C379.844849,463.462250 406.365417,462.705200 432.843719,462.534271 C437.867493,462.501892 441.272034,464.350067 445.171265,467.499115 C454.192444,474.784790 457.107819,483.394592 456.581696,494.901123 C455.715912,513.835632 455.901825,532.850159 456.888123,551.823914 C457.260498,558.987183 456.254272,559.885315 449.067352,559.982178 C444.905151,560.038269 440.739624,559.874207 436.578217,559.951233 C431.767426,560.040283 429.691833,558.031921 429.962738,553.004944 C430.939819,534.875793 430.780548,516.721863 430.688446,498.573730 C430.634979,488.033752 430.587402,488.031433 420.322388,488.034180 C397.839783,488.040222 375.357208,488.054321 352.874603,488.053680 C346.053131,488.053497 345.602051,488.335419 345.417145,495.401398 C344.911835,514.712769 344.745819,534.025391 345.993835,553.766846 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M644.000000,488.102173 C635.834961,488.101044 628.168457,488.190155 620.505371,488.066162 C614.377441,487.967041 612.281433,485.055817 615.510742,479.774841 C621.497925,469.983826 628.552795,461.575592 641.981140,461.967773 C652.112793,462.263702 662.274353,462.967529 672.441284,462.223358 C677.110596,461.881622 681.119995,463.367188 684.395630,467.133423 C687.189880,470.346161 690.144287,473.546417 694.292969,476.123596 C695.302063,472.925659 694.853882,469.947998 694.895325,467.060028 C694.940491,463.906982 696.301697,462.599487 699.458557,462.575592 C708.618042,462.506104 717.776489,462.286011 726.934998,462.103943 C731.969788,462.003845 736.181152,463.230560 739.810669,467.291199 C742.760498,470.591278 746.532410,473.212036 749.445801,476.644714 C751.770142,479.383362 752.636047,482.662109 751.343567,485.966156 C750.067627,489.228027 746.785767,488.108307 744.281921,488.118164 C730.118652,488.174103 715.952209,488.231903 701.792847,487.968140 C697.647339,487.890900 696.263794,489.200836 696.302246,493.317261 C696.489075,513.305237 695.766235,533.299988 696.799011,553.282715 C697.078613,558.692871 696.060486,559.865967 690.721619,559.970154 C685.724976,560.067688 680.723694,559.907288 675.726013,559.976746 C671.342529,560.037720 669.592957,558.222717 669.653015,553.631958 C669.899109,534.805420 669.863342,515.974731 669.864929,497.145569 C669.865723,488.094635 669.798889,488.086609 660.996826,488.075928 C655.497864,488.069244 649.998962,488.091248 644.000000,488.102173 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M244.982697,533.951904 C248.142349,533.956787 250.807770,533.900208 253.468277,533.989624 C255.748306,534.066223 258.591675,533.567017 259.618622,536.189758 C260.726898,539.020142 260.772125,542.353699 258.589050,544.704590 C254.636963,548.960449 250.429459,553.010132 246.052399,556.829285 C243.219894,559.300781 239.572998,559.970886 235.778641,559.967102 C203.819061,559.935364 171.859436,559.955017 139.899826,559.975769 C134.493515,559.979309 129.810440,558.569885 126.295891,554.068604 C124.566856,551.854126 122.424767,549.943909 120.358002,548.015686 C117.374046,545.231628 115.967842,541.831116 115.952347,537.796021 C115.908905,526.477295 115.958244,515.156982 115.763695,503.840790 C115.693283,499.745514 117.537918,498.008331 121.386253,497.990295 C126.712524,497.965302 132.039368,498.033875 137.365387,497.990387 C141.636734,497.955536 143.228577,500.077576 143.121765,504.232025 C142.929321,511.718262 142.972015,519.211548 142.983459,526.701782 C142.994614,533.997253 143.031433,534.022522 150.105499,534.019531 C181.565781,534.006287 213.026062,533.977234 244.982697,533.951904 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M185.000000,488.116882 C164.676758,488.125793 144.853378,488.171936 125.030403,488.102814 C121.992126,488.092224 118.152069,489.278870 116.347305,485.919800 C114.352127,482.206421 116.624390,478.436249 118.851898,475.811707 C125.814781,467.607697 133.136917,461.280701 145.736389,461.763214 C176.343643,462.935394 207.014969,462.480988 237.660782,462.544220 C241.769333,462.552673 244.811035,463.762573 247.773361,466.737549 C262.489716,481.516693 259.946960,476.943115 260.143463,497.071228 C260.211761,504.067047 260.000671,511.069397 260.230530,518.058472 C260.374115,522.423401 258.460388,524.118408 254.324387,524.056091 C249.328217,523.980774 244.330109,524.037720 239.332870,524.024414 C235.101761,524.013184 233.116760,522.535767 233.447540,517.666321 C233.999619,509.539093 233.580505,501.350525 233.800430,493.194000 C233.906403,489.263794 232.315475,487.980225 228.477463,488.023346 C214.153091,488.184387 199.826050,488.105377 185.000000,488.116882 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M480.184692,466.065826 C483.186859,462.842468 486.726746,462.483246 490.509796,462.493286 C520.472595,462.572784 550.435608,462.606964 580.398499,462.588806 C586.218811,462.585266 592.039734,462.143616 597.858948,462.174225 C603.832703,462.205688 604.871765,463.343109 604.960144,469.151215 C605.028625,473.644714 604.945740,478.140717 605.031189,482.633667 C605.098389,486.167297 603.323792,487.844025 599.941528,488.048035 C598.779663,488.118164 597.612305,488.115845 596.447449,488.115540 C555.997192,488.104187 515.546936,488.108337 475.096832,488.030975 C472.419922,488.025848 468.915619,489.193298 467.465576,485.944519 C466.065186,482.807037 467.564758,479.633209 469.671967,477.189514 C472.920807,473.421906 476.495728,469.935455 480.184692,466.065826 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M105.107376,536.000000 C105.137733,542.148987 105.226715,547.798706 105.167168,553.446838 C105.143837,555.660095 105.971611,558.452454 103.081322,559.516907 C100.332245,560.529358 97.196617,560.503662 95.027840,558.481323 C90.304321,554.076782 85.179825,550.058838 81.161293,544.924072 C79.431122,542.713318 78.898788,540.173340 78.902824,537.446960 C78.919296,526.314819 79.057762,515.180359 78.869171,504.051544 C78.790977,499.437317 80.776634,497.791656 85.134254,497.935486 C89.781433,498.088837 94.441864,498.098358 99.088448,497.937622 C103.500511,497.784973 105.357704,499.484894 105.244362,504.099365 C104.987404,514.561035 105.127769,525.032532 105.107376,536.000000 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M289.009827,560.026611 C273.456787,560.023438 275.844971,560.013245 275.890045,547.460571 C275.939911,533.566589 272.934509,533.976685 289.518707,533.979492 C305.636017,533.982178 302.960266,533.725037 303.020905,547.190796 C303.077759,559.812012 304.955963,560.266418 289.994324,560.031494 C289.828491,560.028870 289.662628,560.029785 289.009827,560.026611 z"/><path fill="currentColor" opacity="1.000000" stroke="none" d=" M96.875404,488.188995 C92.566490,488.169220 88.740959,488.198883 84.917862,488.115845 C79.370705,487.995392 77.005081,484.989471 79.574829,480.095459 C83.409149,472.793121 89.513054,467.085114 96.542343,463.032654 C101.951736,459.914062 105.172585,462.588531 105.204025,468.941895 C105.222954,472.766357 105.213524,476.590912 105.214516,480.415436 C105.216499,488.057831 105.203773,488.069794 96.875404,488.188995 z"/></svg></div>
     <h1>Cloud Service Agreement Generator</h1>
+    <span id="adminBadge"></span>
   </div>
   <div class="actions">
-    <button class="btn-ghost" onclick="loadFluence()">Load Fluence example</button>
+    <button class="btn-ghost" onclick="loadStandardTemplate()">Standard Template</button>
     <button class="btn-ghost" onclick="window.print()">Print / Save PDF</button>
     <button class="btn-primary" onclick="downloadDoc()">Download Word (.doc)</button>
+    <button class="btn-send" onclick="sendForSignature()">Send for Signature</button>
   </div>
 </div>
 
@@ -132,9 +152,26 @@ const IO = {ink:"#111127",headerbg:"#3b0764",label:"#5b21b6",accent:"#7c3aed",li
    used in the on-screen preview, the print/PDF, and the Word header alike. */
 const IO_LOGO = "data:image/png;base64,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";
 
+/* ============================================================
+   PRODUCTION CONFIG
+   ============================================================ */
+/* Admin Mode is gated by ?mode=admin. Confidential margin / cost / profit
+   data is ONLY generated when ADMIN is true, lives in a separate adminState,
+   and is never referenced by the document render path (documentBody) or the
+   signature payload - so it can never appear in the preview, the .doc export,
+   the public localStorage draft, or the webhook payload. */
+const ADMIN = new URLSearchParams(location.search).get('mode') === 'admin';
+const GPUS_PER_NODE = 8;     // Total GPUs auto-scales as nodes x 8
+const BILLING_HOURS = 730;   // fixed monthly billing cycle (hours)
+const DRAFT_KEY = 'csa_draft_v1';
+const ADMIN_KEY = 'csa_admin_v1';   // never read/written unless ADMIN
+
+/* confidential, internal-only inputs - separate object, admin paths only */
+const adminState = { salePrice:"", costPerGpu:"" };
+
 /* ---------- Hardware presets ---------- */
 const PRESETS = {
-  "H200 NVL (Fluence)":[
+  "H200 NVL":[
     ["Server type","H200 NVL - Dedicated Server (per node)"],
     ["GPUs","8 x NVIDIA H200 Tensor Core"],
     ["CPU","AMD EPYC 9654, dual socket, 2.4 GHz"],
@@ -209,16 +246,17 @@ const state = {
   startDate:"8 Weeks from date of order",
   subPeriod:"24 month",
   nonRenewal:"At least 30 days before the end of the current Subscription Period",
-  useLimit:"730 hours per month per machine",
+  useLimit:BILLING_HOURS+" hours per month per machine",
 
-  nodeCount:"64", gpusPerNode:"8",
-  specRows: PRESETS["H200 NVL (Fluence)"].map(r=>({label:r[0],value:r[1]})),
+  nodeCount:"64",
+  specRows: PRESETS["H200 NVL"].map(r=>({label:r[0],value:r[1]})),
 
   fee:"[Fill in Cloud Service fee details]",
-  payPeriod:"7 days from Customer's receipt of invoice (monthly invoices will be sent 0-7 days prior to the next month's subscription period)",
+  payTerms:"net30",
   invPeriod:"Monthly",
 
-  availTarget:"99.0",
+  slaTier:"standard",
+  availTarget:"99.5",
   creditCap:"20",
   monthlyCap:"50",
   prios:{
@@ -293,8 +331,10 @@ function buildForm(){
 
   h += acc("D","Hardware Configuration",
     `<div class="row2">
-       <div>${field("Number of nodes","nodeCount")}</div>
-       <div>${field("GPUs per node","gpusPerNode")}</div>
+       <div><label class="fl">Number of nodes</label>
+         <input type="number" min="0" value="${esc(state.nodeCount)}" oninput="setNodes(this.value)"></div>
+       <div><label class="fl">Total GPUs (auto: nodes &times; ${GPUS_PER_NODE})</label>
+         <div class="ro" id="totalGpus">${totalGpusLabel()}</div></div>
      </div>
      <label class="fl">Load a preset</label>
      <select onchange="applyPreset(this.value);this.selectedIndex=0">
@@ -308,13 +348,26 @@ function buildForm(){
 
   h += acc("E","Commercial Terms",
     field("Cloud Service Fee","fee","textarea","Free text. e.g. \"$1.85 per GPU-hour, billed monthly in advance\" or a monthly figure.")+
-    field("Payment Period","payPeriod","textarea")+
+    `<label class="fl">Payment Terms</label>
+     <select onchange="setPayTerms(this.value)">
+       <option value="prepaid" ${state.payTerms==='prepaid'?'selected':''}>Prepaid</option>
+       <option value="net15" ${state.payTerms==='net15'?'selected':''}>Net 15</option>
+       <option value="net30" ${state.payTerms==='net30'?'selected':''}>Net 30</option>
+     </select>
+     <div class="hint">Updates the Payment Period clause on the cover page automatically.</div>
+     <label class="fl">Billing cycle (fixed)</label>
+     <div class="ro"><b>${BILLING_HOURS}</b> hours / month</div>`+
     field("Invoice Period","invPeriod")
   );
 
   h += acc("F","Service Levels (SLA)",
-    `<div class="row3">
-       <div>${field("Availability target %","availTarget")}</div>
+    `<label class="fl">SLA tier</label>
+     <select onchange="setSlaTier(this.value)">
+       <option value="standard" ${state.slaTier==='standard'?'selected':''}>99.5% Standard</option>
+       <option value="premium" ${state.slaTier==='premium'?'selected':''}>99.9% Premium</option>
+     </select>
+     <div class="hint">Sets the availability target and updates the Uptime &amp; Credits text on the cover page.</div>
+     <div class="row2" style="margin-top:8px">
        <div>${field("Credit Cap %","creditCap")}</div>
        <div>${field("Monthly Credit Cap %","monthlyCap")}</div>
      </div>
@@ -355,8 +408,27 @@ function buildForm(){
     `<div class="hint">Customer fields are left blank for signature. Signature blocks convert cleanly to Google Docs for e-signature.</div>`
   );
 
+  /* Internal-only margin/profit section - generated ONLY in Admin Mode so the
+     confidential inputs and math never enter the DOM otherwise. */
+  if(ADMIN){
+    h += `<div class="acc admin">
+      <div class="acc-head" onclick="this.parentNode.classList.toggle('collapsed')">
+        <span><span class="num">$</span>Margin &amp; Profit <span style="font-weight:normal;color:var(--muted)">(internal only)</span></span><span class="chev">&#9662;</span></div>
+      <div class="acc-body">
+        <div class="flag">Internal-only. These values never appear in the document, the .doc export, the saved public draft, or the Send-for-Signature payload.</div>
+        <div class="row2">
+          <div><label class="fl">Sale price / GPU-hour ($)</label>
+            <input type="number" step="0.01" min="0" value="${esc(adminState.salePrice)}" oninput="setAdmin('salePrice',this.value)"></div>
+          <div><label class="fl">Hourly cost / GPU ($)</label>
+            <input type="number" step="0.01" min="0" value="${esc(adminState.costPerGpu)}" oninput="setAdmin('costPerGpu',this.value)"></div>
+        </div>
+        <div id="adminCalc"></div>
+      </div></div>`;
+  }
+
   fp.innerHTML = h;
   renderSpecs();
+  if(ADMIN) updateAdminCalc();
 }
 function renderSpecs(){
   const c = document.getElementById('speclist'); if(!c) return;
@@ -368,13 +440,131 @@ function renderSpecs(){
     </div>`).join("");
 }
 
-/* ---------- state setters ---------- */
-function set(k,v){ state[k]=v; render(); }
-function setPrio(p,f,v){ state.prios[p][f]=v; render(); }
-function setSpec(i,f,v){ state.specRows[i][f]=v; render(); }
-function rmSpec(i){ state.specRows.splice(i,1); renderSpecs(); render(); }
-function addSpec(){ state.specRows.push({label:"",value:""}); renderSpecs(); render(); }
-function applyPreset(name){ if(!name||!PRESETS[name])return; state.specRows = PRESETS[name].map(r=>({label:r[0],value:r[1]})); renderSpecs(); render(); }
+/* ---------- state setters (public state -> autosaved) ---------- */
+function set(k,v){ state[k]=v; render(); saveDraft(); }
+function setPrio(p,f,v){ state.prios[p][f]=v; render(); saveDraft(); }
+function setSpec(i,f,v){ state.specRows[i][f]=v; render(); saveDraft(); }
+function rmSpec(i){ state.specRows.splice(i,1); renderSpecs(); render(); saveDraft(); }
+function addSpec(){ state.specRows.push({label:"",value:""}); renderSpecs(); render(); saveDraft(); }
+function applyPreset(name){ if(!name||!PRESETS[name])return; state.specRows = PRESETS[name].map(r=>({label:r[0],value:r[1]})); renderSpecs(); render(); saveDraft(); }
+function setNodes(v){ state.nodeCount=v; const el=document.getElementById('totalGpus'); if(el) el.innerHTML=totalGpusLabel(); render(); if(ADMIN) updateAdminCalc(); saveDraft(); }
+function setSlaTier(v){ state.slaTier=v; state.availTarget=slaAvail(v); render(); saveDraft(); }
+function setPayTerms(v){ state.payTerms=v; render(); saveDraft(); }
+/* admin setter: confidential, never touches public state, render, or public draft */
+function setAdmin(k,v){ adminState[k]=v; updateAdminCalc(); saveAdmin(); }
+
+/* ============ CALCULATION ENGINE ============ */
+function num(v){ const n=parseFloat(v); return isNaN(n)?null:n; }
+function totalGpus(){ return (parseInt(state.nodeCount,10)||0)*GPUS_PER_NODE; }
+function totalGpusLabel(){ const g=totalGpus(); return g? `<b>${g.toLocaleString()}</b> GPUs` : '&mdash;'; }
+function slaAvail(tier){ return tier==='premium' ? '99.9' : '99.5'; }
+function slaTierLabel(tier){ return tier==='premium' ? '99.9% Premium' : '99.5% Standard'; }
+function payPeriodText(){
+  switch(state.payTerms){
+    case 'prepaid': return 'Prepaid - all fees for the Subscription Period are due in advance on or before the Subscription Start Date.';
+    case 'net15':   return 'Net 15 - payment due within fifteen (15) days of Customer’s receipt of each invoice.';
+    default:        return 'Net 30 - payment due within thirty (30) days of Customer’s receipt of each invoice.';
+  }
+}
+function money(n){ return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+/* live margin readout - admin only; writes into #adminCalc */
+function updateAdminCalc(){
+  if(!ADMIN) return;
+  const el=document.getElementById('adminCalc'); if(!el) return;
+  const sale=num(adminState.salePrice), cost=num(adminState.costPerGpu);
+  if(sale===null||cost===null){ el.innerHTML='<div class="hint">Enter sale price and cost to compute margin.</div>'; return; }
+  const perHr=sale-cost, gpus=totalGpus();
+  const monthlyPerGpu=perHr*BILLING_HOURS, monthlyTotal=monthlyPerGpu*gpus;
+  const cls=perHr>=0?'pos':'neg';
+  el.innerHTML=`<div class="calc">
+    <div class="row ${cls}"><span>Net profit / GPU-hour</span><span class="v">${money(perHr)}</span></div>
+    <div class="row ${cls}"><span>Net profit / GPU / month (${BILLING_HOURS}h)</span><span class="v">${money(monthlyPerGpu)}</span></div>
+    <div class="row big ${cls}"><span>Net monthly margin (${gpus.toLocaleString()} GPUs)</span><span class="v">${money(monthlyTotal)}</span></div>
+  </div>`;
+}
+
+/* ============ SESSION INSURANCE (localStorage autosave) ============ */
+function saveDraft(){ try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); }catch(e){} }
+function hasDraft(){ try{ return !!localStorage.getItem(DRAFT_KEY); }catch(e){ return false; } }
+function restoreDraft(){
+  try{
+    const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'{}');
+    Object.keys(d).forEach(k=>{ state[k]=d[k]; });
+  }catch(e){}
+  hideToast(); buildForm(); render();
+}
+/* admin draft kept under a separate key, only ever touched in Admin Mode */
+function saveAdmin(){ if(!ADMIN) return; try{ localStorage.setItem(ADMIN_KEY, JSON.stringify(adminState)); }catch(e){} }
+function loadAdmin(){ if(!ADMIN) return; try{ const a=JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'); Object.keys(a).forEach(k=>{ if(k in adminState) adminState[k]=a[k]; }); }catch(e){} }
+
+/* ============ TOAST ============ */
+function showToast(html){ const t=document.getElementById('toast'); if(!t) return; t.innerHTML=html; t.classList.remove('hidden'); }
+function hideToast(){ const t=document.getElementById('toast'); if(t) t.classList.add('hidden'); }
+function flashToast(msg){ showToast(`<span>${esc(msg)}</span><button class="btn-ghost" onclick="hideToast()">OK</button>`); setTimeout(hideToast, 5000); }
+function maybeOfferRestore(){
+  if(!hasDraft()) return;
+  showToast(`<span>A saved draft from a previous session was found.</span>
+    <button class="btn-primary" onclick="restoreDraft()">Restore draft</button>
+    <button class="btn-ghost" onclick="hideToast()">Dismiss</button>`);
+}
+
+/* ============ INTEGRATION HOOK (Send for Signature) ============ */
+/* buildSignaturePayload returns ONLY public contract data - it deliberately
+   omits adminState (cost/margin). postToWebhook is the modular seam for the
+   future n8n -> DocuSign integration. */
+function buildSignaturePayload(){
+  return {
+    generatedAt: new Date().toISOString(),
+    document: { title: state.docTitle, deal: state.dealName },
+    customer: { name: state.customerName, notice: state.customerAddr },
+    provider: { name: state.providerName, signer: state.provSigner, signerTitle: state.provSignerTitle },
+    term: { start: state.startDate, period: state.subPeriod, nonRenewalNotice: state.nonRenewal, useLimitations: state.useLimit },
+    hardware: { nodes: state.nodeCount, gpusPerNode: GPUS_PER_NODE, totalGpus: totalGpus(), spec: state.specRows },
+    commercial: { fee: state.fee, billingHours: BILLING_HOURS, paymentTerms: state.payTerms, paymentPeriod: payPeriodText(), invoicePeriod: state.invPeriod },
+    sla: { tier: state.slaTier, availabilityTarget: state.availTarget, creditCap: state.creditCap, monthlyCreditCap: state.monthlyCap, support: state.prios },
+    legal: { effectiveDate: state.effDate, governingLaw: state.govLaw, chosenCourts: state.courts, publicity: state.publicity },
+    poc: state.pocMode==='none' ? null : { mode: state.pocMode, hours: state.pocHours, fee: state.pocFee }
+  };
+}
+const WEBHOOK_URL = ""; // set to the n8n webhook URL to enable live sending
+function postToWebhook(payload){
+  if(WEBHOOK_URL){
+    return fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }
+  // placeholder until the webhook is connected
+  console.log('[CSA] Send for Signature payload (webhook placeholder):', payload);
+  return Promise.resolve();
+}
+function sendForSignature(){
+  const payload = buildSignaturePayload();
+  postToWebhook(payload);
+  flashToast(`Signature payload logged to console (${(payload.hardware.totalGpus||0).toLocaleString()} GPUs). Webhook integration pending.`);
+}
+
+/* ---------- Standard Template (replaces the old Fluence example) ---------- */
+function loadStandardTemplate(){
+  Object.assign(state, {
+    docTitle:"Cloud Service Agreement",
+    dealName:"",
+    customerName:"[CUSTOMER LEGAL NAME]",
+    customerAddr:"[Customer notice email / address]",
+    pocMode:"none", pocHours:"", pocFee:"",
+    cloudDesc:"The Cloud Service is a decentralized GPU computing network.",
+    startDate:"[Subscription start date]",
+    subPeriod:"[e.g. 12 months]",
+    nonRenewal:"At least 30 days before the end of the current Subscription Period",
+    useLimit:BILLING_HOURS+" hours per month per machine",
+    nodeCount:"",
+    specRows: PRESETS["H200 NVL"].map(r=>({label:r[0],value:r[1]})),
+    fee:"[Sale price, e.g. $X.XX per GPU-hour, billed monthly]",
+    payTerms:"net30",
+    invPeriod:"Monthly",
+    slaTier:"standard",
+    availTarget:slaAvail("standard"),
+    creditCap:"20", monthlyCap:"50"
+  });
+  buildForm(); render(); saveDraft();
+}
 
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function nl2br(s){return esc(s).replace(/\n/g,"<br>");}
@@ -400,7 +590,8 @@ function slaCell(){
   const cc = state.creditCap||"20";
   const mc = state.monthlyCap||"50";
   const p = state.prios;
-  return `<div><b>In these Service Levels:</b> Credit Cap means an amount equal to ${esc(cc)}% of the Monthly Licence Fee for the Services as set out in the SOW. Response Time means the time which elapses between the time at which a Support Request is received by the Supplier and when the Supplier Responds to the Customer acknowledging receipt and confirming the Priority. Resolution Time means the time which elapses between the time at which a Support Request is received by the Supplier and the time at which it is Resolved by the Supplier. Compliance with each Service Level category is calculated over a monthly period. The maximum cumulative service credit in any month shall not exceed ${esc(mc)}% of that month's recurring charge.</div>
+  return `<div><b>Service Level Tier:</b> ${esc(slaTierLabel(state.slaTier))} (${esc(avail)}% monthly availability target).</div>
+  <div style="margin-top:6px"><b>In these Service Levels:</b> Credit Cap means an amount equal to ${esc(cc)}% of the Monthly Licence Fee for the Services as set out in the SOW. Response Time means the time which elapses between the time at which a Support Request is received by the Supplier and when the Supplier Responds to the Customer acknowledging receipt and confirming the Priority. Resolution Time means the time which elapses between the time at which a Support Request is received by the Supplier and the time at which it is Resolved by the Supplier. Compliance with each Service Level category is calculated over a monthly period. The maximum cumulative service credit in any month shall not exceed ${esc(mc)}% of that month's recurring charge.</div>
   <div style="margin-top:6px"><b>Client Solution Availability Service Level.</b> The Supplier will ensure the Client Solution is available to the Customer in accordance with the availability target below.</div>
   <table class="io" style="margin-top:6px"><tr class="hdr"><td>Service</td><td>Availability target (monthly)</td></tr>
   <tr><td class="lab">Client Solution Availability</td><td>${esc(avail)}%</td></tr></table>
@@ -415,9 +606,8 @@ function slaCell(){
 }
 function hardwareCell(){
   const nodes = state.nodeCount||"__";
-  const gpn = parseInt(state.gpusPerNode)||0;
-  const total = (parseInt(nodes)||0)*gpn;
-  const head = `<b>${esc(nodes)} Nodes${total?` (${total} GPUs)`:""}</b>`;
+  const total = totalGpus();
+  const head = `<b>${esc(nodes)} Nodes${total?` (${total.toLocaleString()} GPUs)`:""}</b>`;
   const rows = state.specRows.filter(r=>r.label||r.value)
     .map(r=>`<tr><td class="lab">${esc(r.label)}</td><td>${esc(r.value)}</td></tr>`).join("");
   return `${head}<table class="io" style="margin-top:6px">${rows}</table>`;
@@ -435,7 +625,7 @@ function orderFormRows(){
   rows.push([`SLA<span class="sub2">Service Level Agreement</span>`, slaCell()]);
   rows.push(["Cloud Service (Compute resources)", hardwareCell()]);
   rows.push(["Cloud Service Fee", nl2br(state.fee)]);
-  rows.push([`Payment Period<span class="sub2">Time frame for Customer to pay invoices</span>`, nl2br(state.payPeriod)]);
+  rows.push([`Payment Period<span class="sub2">Time frame for Customer to pay invoices</span>`, nl2br(payPeriodText())]);
   rows.push([`Invoice Period<span class="sub2">How frequently Provider sends invoices</span>`, esc(state.invPeriod)]);
   return rows;
 }
@@ -579,18 +769,18 @@ function downloadDoc(){
   setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }
 
-function loadFluence(){
-  applyPreset("H200 NVL (Fluence)");
-  state.docTitle="Fluence 64 Node H200 NVL 24 months CSA";
-  state.dealName="Fluence | 64-Node H200 NVL | 24 Months";
-  state.customerName="[INSERT NAME]";
-  state.nodeCount="64"; state.gpusPerNode="8";
-  state.pocMode="none";
-  buildForm(); render();
-}
-
 /* mount */
-buildForm();
+(function init(){
+  // toast host
+  const t=document.createElement('div'); t.id='toast'; t.className='toast hidden'; document.body.appendChild(t);
+  // Admin Mode indicator + load confidential draft (admin only)
+  if(ADMIN){
+    loadAdmin();
+    const b=document.getElementById('adminBadge'); if(b){ b.className='adminbadge'; b.textContent='ADMIN MODE'; }
+  }
+  buildForm();
+  maybeOfferRestore();
+})();
 </script>
 
 <script>
