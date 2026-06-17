@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>io.net CSA Generator</title>
+<style>
+  :root{
+    --ink:#111127; --headerbg:#3b0764; --label:#5b21b6; --accent:#7c3aed;
+    --lightrow:#f5f3ff; --stat:#c4b5fd; --footer:#666666; --border:#e9d5ff;
+    --bg:#0f0f17; --panel:#1a1a26; --panel2:#222232; --line:#33334a; --txt:#e8e8f0; --muted:#9a9ab0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+  .brand{font-size:20px;font-weight:bold;color:var(--accent)}
+  .brand span{color:#fff}
+  .topbar h1{font-size:15px;font-weight:normal;color:var(--muted);margin:0}
+  .actions{display:flex;gap:10px}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:bold}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#6d28d9}
+  .btn-ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--accent)}
+  .layout{display:grid;grid-template-columns:minmax(420px,520px) 1fr;gap:0;height:calc(100vh - 57px)}
+  @media(max-width:980px){.layout{grid-template-columns:1fr;height:auto}}
+  .formpane{overflow-y:auto;padding:18px 20px 80px;border-right:1px solid var(--line)}
+  .previewpane{overflow-y:auto;background:#3a3a48;padding:28px}
+  .acc{background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:12px;overflow:hidden}
+  .acc-head{padding:13px 15px;font-weight:bold;font-size:14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;color:#fff}
+  .acc-head .num{color:var(--stat);margin-right:8px}
+  .acc-head .chev{color:var(--muted);transition:transform .15s}
+  .acc.collapsed .acc-body{display:none}
+  .acc.collapsed .chev{transform:rotate(-90deg)}
+  .acc-body{padding:4px 15px 16px;border-top:1px solid var(--line)}
+  label.fl{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;font-weight:bold;letter-spacing:.02em}
+  input[type=text],input[type=number],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--txt);padding:9px 10px;font-family:inherit;font-size:13px}
+  textarea{resize:vertical;line-height:1.45}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .radiorow{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .radiorow label{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+  .radiorow input{accent-color:var(--accent)}
+  .speclist{margin-top:8px}
+  .specrow{display:grid;grid-template-columns:150px 1fr 30px;gap:8px;margin-bottom:7px}
+  .specrow input{font-size:12px}
+  .specrow .rm{background:#3a2a3a;border:1px solid var(--line);color:#e0a0c0;border-radius:6px;padding:0;font-size:16px;line-height:1}
+  .addrow{background:var(--panel2);border:1px dashed var(--accent);color:var(--stat);width:100%;margin-top:4px;padding:8px;border-radius:6px;font-size:12px}
+  .prio{display:grid;grid-template-columns:90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px}
+  .prio .pl{font-size:12px;font-weight:bold;color:var(--stat)}
+  .prio input{font-size:12px}
+  .prioHdr{display:grid;grid-template-columns:90px 1fr 1fr;gap:8px;font-size:11px;color:var(--muted);margin:6px 0}
+  .flag{background:#2a2030;border:1px solid #5b3a6b;border-radius:7px;padding:10px 12px;font-size:12px;color:#d9c2e8;margin:10px 0;line-height:1.5}
+
+  /* ===== Document preview / export styling ===== */
+  .docwrap{background:#fff;color:#111127;max-width:8.5in;margin:0 auto;padding:0.85in 0.85in 0.7in;box-shadow:0 6px 30px rgba(0,0,0,.4);font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.5}
+  /* running header: a table thead repeats on every printed page (and reserves its
+     space, so no overlap). On screen it renders once as the cover letterhead. */
+  .pframe{width:100%;border-collapse:collapse}
+  .pframe > thead{display:table-header-group}
+  .pframe > thead td,.pframe > tbody td{padding:0;border:none;vertical-align:top}
+  /* quirks mode does not inherit color into table cells; set the document ink
+     explicitly on the content cell so contract text is not the light UI color */
+  .pframe > tbody > tr > td{color:#111127}
+  .rhead img{height:30px;width:auto;display:block}
+  .rhead hr{border:none;border-bottom:2px solid #7c3aed;margin:6px 0 18px}
+  .docwrap h1.doctitle{font-size:21px;color:#111127;margin:0 0 2px}
+  .docwrap .subtitle{color:#5b21b6;font-weight:bold;font-size:13px;margin:0 0 18px}
+  .docwrap h2.sec{font-size:14px;color:#111127;border-bottom:2px solid #7c3aed;padding-bottom:4px;margin:24px 0 10px}
+  .docwrap .banner{background:#5b21b6;color:#fff;font-weight:bold;padding:7px 10px;font-size:12px;margin:18px 0 0}
+  table.io{border-collapse:collapse;width:100%;margin:0 0 6px;font-size:10.5pt}
+  table.io td{border:1px solid #e9d5ff;padding:7px 9px;vertical-align:top}
+  table.io td.lab{background:#f5f3ff;color:#5b21b6;font-weight:bold;width:32%}
+  table.io .hdr td{background:#3b0764;color:#fff;font-weight:bold}
+  table.io .hdr td .sub{display:block;font-weight:normal;color:#c4b5fd;font-size:9pt}
+  .sig td{border:1px solid #e9d5ff;padding:9px;vertical-align:top}
+  .sig td.k{background:#f5f3ff;color:#5b21b6;font-weight:bold;width:18%}
+  .sig td.party{background:#3b0764;color:#fff;font-weight:bold;text-align:center}
+  .docfooter{margin-top:14px;color:#666666;font-size:9pt;border-top:1px solid #e9d5ff;padding-top:6px}
+  .ack{font-size:10.5pt;margin:16px 0}
+  /* legal body numbering via counters */
+  .terms{counter-reset:sec}
+  .terms .legalsec{counter-reset:cl;margin-top:18px}
+  .terms .legalsec > h3{font-size:13px;color:#111127;border-bottom:2px solid #7c3aed;padding-bottom:3px;margin:0 0 8px}
+  .terms .legalsec > h3::before{counter-increment:sec;content:counter(sec) ". "}
+  .terms .cl{margin:8px 0;font-size:10.5pt}
+  .terms .cl > .clt{font-weight:bold}
+  .terms .cl > .clt::before{counter-increment:cl;content:counter(sec) "." counter(cl) "  ";font-weight:bold}
+  .terms .cl.nonum > .clt::before{content:""}
+  .terms ol.alpha{margin:6px 0 6px 18px;padding-left:14px}
+  .terms ol.alpha>li{margin:4px 0;font-size:10.5pt}
+  .terms ul.dash{margin:6px 0 6px 18px;padding-left:14px}
+  .terms ul.dash>li{margin:3px 0;font-size:10.5pt}
+  .terms p.sub{margin:5px 0 5px 18px;font-size:10.5pt}
+  .pagebreak{page-break-before:always}
+  .exhibit h2{font-size:15px;color:#111127;border-bottom:2px solid #7c3aed;padding-bottom:4px}
+  @media print{
+    body{background:#fff}
+    .topbar,.formpane,.previewpane{all:unset}
+    .topbar,.formpane{display:none!important}
+    .layout{display:block}
+    .previewpane{display:block;background:#fff;padding:0}
+    .docwrap{box-shadow:none;max-width:none;margin:0;padding:0}
+    /* smaller running header for the printed page; thead repeats it on every page */
+    .rhead img{height:17px}
+    .rhead hr{border-bottom-width:1.5px;margin:5px 0 14px}
+    @page{size:8.5in 11in;margin:1in}
+  }
+</style>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="brand">io<span>.net</span></div>
+    <h1>Cloud Service Agreement Generator</h1>
+  </div>
+  <div class="actions">
+    <button class="btn-ghost" onclick="loadFluence()">Load Fluence example</button>
+    <button class="btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    <button class="btn-primary" onclick="downloadDoc()">Download Word (.doc)</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="formpane" id="formpane"></div>
+  <div class="previewpane"><div class="docwrap" id="doc"></div></div>
+</div>
+
+<script>
+const IO = {ink:"#111127",headerbg:"#3b0764",label:"#5b21b6",accent:"#7c3aed",lightrow:"#f5f3ff",stat:"#c4b5fd",footer:"#666666",border:"#e9d5ff"};
+
+/* io.net wordmark, embedded as a base64 PNG so it survives the .doc -> Google Docs
+   export path (inline SVG is dropped by Google Docs on import). One raster asset is
+   used in the on-screen preview, the print/PDF, and the Word header alike. */
+const IO_LOGO = "data:image/png;base64,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";
+
+/* ---------- Hardware presets ---------- */
+const PRESETS = {
+  "H200 NVL (Fluence)":[
+    ["Server type","H200 NVL - Dedicated Server (per node)"],
+    ["GPUs","8 x NVIDIA H200 Tensor Core"],
+    ["CPU","AMD EPYC 9654, dual socket, 2.4 GHz"],
+    ["RAM","1,536 GB"],
+    ["Storage","4 x 960 GB NVMe U.2 Mixed Use 2.5\" - no RAID"],
+    ["Network ports","2 x 1GE + 2 x 10GE (default)"],
+    ["Uplink","1 x 1,000 Mbps UTP"],
+    ["Data traffic","metered, 30 TB included"],
+    ["Power","4 x PSU (power included)"],
+    ["Rackspace","4U"],
+    ["IP","1 x dedicated IP"],
+    ["Private network","no VLAN"],
+    ["OS","bare metal - no partitioning, no OS, no control panel"]
+  ],
+  "H100 SXM":[
+    ["Server type","H100 SXM - Dedicated Server (per node)"],
+    ["GPUs","8 x NVIDIA H100 80GB SXM5"],
+    ["CPU","Dual Intel Xeon Platinum, 2.0 GHz"],
+    ["RAM","2,048 GB"],
+    ["Storage","8 x 3.84 TB NVMe U.2"],
+    ["Network","InfiniBand NDR 400 Gb/s, 8 ports"],
+    ["Power","power included"],
+    ["IP","1 x dedicated IP"],
+    ["OS","bare metal"]
+  ],
+  "B200":[
+    ["Server type","B200 - Dedicated Server (per node)"],
+    ["GPUs","8 x NVIDIA B200 Tensor Core"],
+    ["CPU","Dual Intel Xeon 6, high core count"],
+    ["RAM","3,072 GB"],
+    ["Storage","8 x 3.84 TB NVMe"],
+    ["Network","InfiniBand XDR / 8 x 400G, plus mgmt"],
+    ["Power","power included"],
+    ["IP","1 x dedicated IP"],
+    ["OS","bare metal"]
+  ],
+  "B300":[
+    ["Server type","B300 - Dedicated Server (per node)"],
+    ["GPUs","8 x NVIDIA B300 Tensor Core"],
+    ["CPU","Dual next-gen Xeon"],
+    ["RAM","4,096 GB"],
+    ["Storage","8 x 7.68 TB NVMe"],
+    ["Network","800G class interconnect, 8 ports"],
+    ["Power","power included"],
+    ["IP","1 x dedicated IP"],
+    ["OS","bare metal"]
+  ],
+  "AMD MI300X":[
+    ["Server type","MI300X - Dedicated Server (per node)"],
+    ["GPUs","8 x AMD Instinct MI300X"],
+    ["CPU","Dual AMD EPYC"],
+    ["RAM","2,304 GB"],
+    ["Storage","8 x 3.84 TB NVMe"],
+    ["Network","8 x 400G RoCE / IB"],
+    ["Power","power included"],
+    ["IP","1 x dedicated IP"],
+    ["OS","bare metal"]
+  ]
+};
+
+/* ---------- default state ---------- */
+const state = {
+  docTitle:"Cloud Service Agreement",
+  dealName:"",
+  customerName:"[INSERT NAME]",
+  customerAddr:"",
+  providerName:"IO.NET Inc.",
+
+  pocMode:"none", pocHours:"", pocFee:"",
+
+  cloudDesc:"The Cloud Service is a decentralized GPU computing network.",
+  startDate:"8 Weeks from date of order",
+  subPeriod:"24 month",
+  nonRenewal:"At least 30 days before the end of the current Subscription Period",
+  useLimit:"730 hours per month per machine",
+
+  nodeCount:"64", gpusPerNode:"8",
+  specRows: PRESETS["H200 NVL (Fluence)"].map(r=>({label:r[0],value:r[1]})),
+
+  fee:"[Fill in Cloud Service fee details]",
+  payPeriod:"7 days from Customer's receipt of invoice (monthly invoices will be sent 0-7 days prior to the next month's subscription period)",
+  invPeriod:"Monthly",
+
+  availTarget:"99.0",
+  creditCap:"20",
+  monthlyCap:"50",
+  prios:{
+    p1:{resp:"30 minutes",reso:"4 hours"},
+    p2:{resp:"1 hour",reso:"8 hours"},
+    p3:{resp:"4 hours",reso:"2 business days"},
+    p4:{resp:"1 business day",reso:"best efforts"}
+  },
+
+  effDate:"Date of last Cover Page signature",
+  govLaw:"The laws of the State of Delaware",
+  courts:"The state and federal courts located in Delaware",
+  courtsNonPay:"For disputes arising from non-payment or delayed payment by Customer, Provider may initiate proceedings either in the Chosen Courts or in the courts of the jurisdiction where Customer is incorporated or registered",
+  provClaims:"Any action, proceeding, or claim that the Cloud Service, when used by Customer according to the terms of the Agreement, violates, misappropriates, or otherwise infringes upon anyone else's intellectual property or other proprietary rights.",
+  custClaims:"Any action, proceeding, or claim that (1) the Customer Content, when used according to the terms of the Agreement, violates, misappropriates, or otherwise infringes upon anyone else's intellectual property or other proprietary rights; or (2) results from Customer's breach or alleged breach of Section 2.1 (Restrictions on Customer).",
+  security:"Provider will use commercially reasonable efforts to secure the Cloud Service from unauthorized access, alteration, or use and other unlawful tampering.",
+  publicity:"yes",
+  genCap:"The total fees paid or payable by Customer under this Agreement in the twelve (12) months preceding the event giving rise to the claim",
+  incCap:"Two times (2x) the General Cap Amount",
+  unlimited:"Breach of confidentiality obligations; infringement or misappropriation of the other party's intellectual property; a party's indemnification obligations; a party's gross negligence or willful misconduct; and Customer's payment obligations.",
+  increased:"Breach of a party's data protection or data security obligations; and a data or security breach caused by the breaching party.",
+
+  provSigner:"", provSignerTitle:"",
+};
+
+/* ---------- form builder ---------- */
+function field(label,key,type="text",hint=""){
+  const v = state[key]??"";
+  const el = type==="textarea"
+    ? `<textarea rows="3" oninput="set('${key}',this.value)">${esc(v)}</textarea>`
+    : `<input type="${type}" value="${esc(v)}" oninput="set('${key}',this.value)">`;
+  return `<label class="fl">${label}</label>${el}${hint?`<div class="hint">${hint}</div>`:""}`;
+}
+function acc(num,title,bodyHtml,collapsed=false){
+  return `<div class="acc ${collapsed?'collapsed':''}">
+    <div class="acc-head" onclick="this.parentNode.classList.toggle('collapsed')">
+      <span><span class="num">${num}</span>${title}</span><span class="chev">▾</span></div>
+    <div class="acc-body">${bodyHtml}</div></div>`;
+}
+function buildForm(){
+  const fp = document.getElementById('formpane');
+  let h = "";
+
+  h += acc("A","Document &amp; Parties",
+    field("Document title (used for filename)","docTitle")+
+    field("Deal / subtitle line (shown under title)","dealName","text","e.g. Fluence | 64-Node H200 NVL | 24 Months")+
+    field("Customer legal name","customerName")+
+    field("Customer notice address / email","customerAddr","textarea")
+  );
+
+  h += acc("B","Proof of Concept (POC)",
+    `<label class="fl">POC type</label>
+     <div class="radiorow">
+       <label><input type="radio" name="poc" ${state.pocMode==='none'?'checked':''} onchange="set('pocMode','none')">No POC</label>
+       <label><input type="radio" name="poc" ${state.pocMode==='free'?'checked':''} onchange="set('pocMode','free')">Free POC</label>
+       <label><input type="radio" name="poc" ${state.pocMode==='paid'?'checked':''} onchange="set('pocMode','paid')">Paid POC</label>
+     </div>
+     <div class="row2">
+       <div>${field("POC duration (hours)","pocHours")}</div>
+       <div>${field("POC fee (paid POC only)","pocFee")}</div>
+     </div>
+     <div class="hint">Free POC drops the fee-liability language automatically. "No POC" removes the entire POC row.</div>`
+  );
+
+  h += acc("C","Subscription &amp; Term",
+    field("Cloud Service description","cloudDesc","textarea")+
+    field("Subscription Start Date","startDate")+
+    field("Subscription Period","subPeriod")+
+    field("Non-Renewal Notice Date","nonRenewal","textarea")+
+    field("Use Limitations","useLimit")
+  );
+
+  h += acc("D","Hardware Configuration",
+    `<div class="row2">
+       <div>${field("Number of nodes","nodeCount")}</div>
+       <div>${field("GPUs per node","gpusPerNode")}</div>
+     </div>
+     <label class="fl">Load a preset</label>
+     <select onchange="applyPreset(this.value);this.selectedIndex=0">
+       <option value="">Choose a preset to populate spec rows...</option>
+       ${Object.keys(PRESETS).map(k=>`<option>${k}</option>`).join("")}
+     </select>
+     <label class="fl">Spec rows (per node)</label>
+     <div class="speclist" id="speclist"></div>
+     <button class="addrow" onclick="addSpec()">+ Add spec row</button>`
+  );
+
+  h += acc("E","Commercial Terms",
+    field("Cloud Service Fee","fee","textarea","Free text. e.g. \"$1.85 per GPU-hour, billed monthly in advance\" or a monthly figure.")+
+    field("Payment Period","payPeriod","textarea")+
+    field("Invoice Period","invPeriod")
+  );
+
+  h += acc("F","Service Levels (SLA)",
+    `<div class="row3">
+       <div>${field("Availability target %","availTarget")}</div>
+       <div>${field("Credit Cap %","creditCap")}</div>
+       <div>${field("Monthly Credit Cap %","monthlyCap")}</div>
+     </div>
+     <label class="fl">Support response &amp; resolution targets</label>
+     <div class="prioHdr"><div></div><div>Response Time</div><div>Resolution Time</div></div>
+     ${['p1','p2','p3','p4'].map(p=>`
+       <div class="prio">
+         <div class="pl">${p.toUpperCase()}</div>
+         <input type="text" value="${esc(state.prios[p].resp)}" oninput="setPrio('${p}','resp',this.value)">
+         <input type="text" value="${esc(state.prios[p].reso)}" oninput="setPrio('${p}','reso',this.value)">
+       </div>`).join("")}
+     <div class="hint">P1 critical, P2 major, P3 minor, P4 no immediate impact. These feed the SLA tables on the cover page.</div>`
+  );
+
+  h += acc("G","Legal / Key Terms",
+    field("Effective Date","effDate")+
+    field("Governing Law","govLaw")+
+    field("Chosen Courts","courts")+
+    field("Chosen Courts (Non-Payment Claims)","courtsNonPay","textarea")+
+    field("Provider Covered Claims","provClaims","textarea")+
+    field("Customer Covered Claims","custClaims","textarea")+
+    `<label class="fl">Publicity rights (logo / customer name use)</label>
+     <div class="radiorow">
+       <label><input type="radio" name="pub" ${state.publicity==='yes'?'checked':''} onchange="set('publicity','yes')">Allowed</label>
+       <label><input type="radio" name="pub" ${state.publicity==='no'?'checked':''} onchange="set('publicity','no')">Not allowed</label>
+     </div>`+
+    field("Security statement","security","textarea")+
+    `<div class="flag">Liability caps below populate the defined terms used in Section 9. Review with legal before sending.</div>`+
+    field("General Cap Amount","genCap","textarea")+
+    field("Increased Cap Amount","incCap","textarea")+
+    field("Unlimited Claims","unlimited","textarea")+
+    field("Increased Claims","increased","textarea")
+  );
+
+  h += acc("H","Signatories",
+    field("io.net signer name (optional)","provSigner")+
+    field("io.net signer title (optional)","provSignerTitle")+
+    `<div class="hint">Customer fields are left blank for signature. Signature blocks convert cleanly to Google Docs for e-signature.</div>`
+  );
+
+  fp.innerHTML = h;
+  renderSpecs();
+}
+function renderSpecs(){
+  const c = document.getElementById('speclist'); if(!c) return;
+  c.innerHTML = state.specRows.map((r,i)=>`
+    <div class="specrow">
+      <input type="text" value="${esc(r.label)}" oninput="setSpec(${i},'label',this.value)" placeholder="Label">
+      <input type="text" value="${esc(r.value)}" oninput="setSpec(${i},'value',this.value)" placeholder="Value">
+      <button class="rm" onclick="rmSpec(${i})" title="Remove">x</button>
+    </div>`).join("");
+}
+
+/* ---------- state setters ---------- */
+function set(k,v){ state[k]=v; render(); }
+function setPrio(p,f,v){ state.prios[p][f]=v; render(); }
+function setSpec(i,f,v){ state.specRows[i][f]=v; render(); }
+function rmSpec(i){ state.specRows.splice(i,1); renderSpecs(); render(); }
+function addSpec(){ state.specRows.push({label:"",value:""}); renderSpecs(); render(); }
+function applyPreset(name){ if(!name||!PRESETS[name])return; state.specRows = PRESETS[name].map(r=>({label:r[0],value:r[1]})); renderSpecs(); render(); }
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function nl2br(s){return esc(s).replace(/\n/g,"<br>");}
+
+/* ============ DOCUMENT RENDER ============ */
+function pocCell(){
+  if(state.pocMode==='none') return null;
+  const hrs = state.pocHours||"_____";
+  const fee = state.pocMode==='paid' ? (state.pocFee||"________") : "no fee (free POC)";
+  let t = `Provider and Customer agree that, before full deployment, Provider will make available the proof-of-concept services and related support described in this Section (the "POC") for Customer's internal evaluation and testing for a period of ${esc(hrs)} HOURS beginning on the date the POC is made available for Customer's use (the "POC Period"). Customer will use the POC solely to verify whether the POC satisfies the functional, technical, and operational requirements expressly set out in this Order Form (the "POC Requirements").`;
+  if(state.pocMode==='paid'){
+    t += ` Customer will pay Provider a proof-of-concept fee of ${esc(fee)} (the "POC Fee") after completion of the POC Period, but only as provided in this clause. If Provider satisfies the POC Requirements during the POC Period, or the POC is deemed accepted under this clause, Provider may invoice the POC Fee promptly after the end of the POC Period, and Customer will pay that invoice within seven (7) days after receipt. If the POC is completed successfully and the CSA proceeds to full deployment, Provider will apply the full amount of the POC Fee as a credit against Customer's future invoices issued under this CSA, beginning with the first invoice unless otherwise stated.`;
+  }
+  t += ` Notwithstanding that the full CSA has not yet otherwise become effective, Sections 7 (Representations and Warranties), 8 (Disclaimer of Warranties), 9 (Limitation of Liability), and 10 (Indemnification) of the CSA will apply to the POC and be binding on Provider and Customer during the POC Period. The remainder of the CSA and this Order Form will come into full force and effect only upon successful completion or deemed acceptance of the POC as provided below. During the POC Period, Customer will promptly perform all agreed testing, provide reasonable cooperation, and notify Provider in writing of any claimed failure of the POC to satisfy the POC Requirements. If Provider satisfies the POC Requirements during the POC Period, or if Customer does not deliver written notice of any failure before the end of the POC Period, the POC will be deemed accepted as of the end of the POC Period. Upon successful completion or deemed acceptance of the POC, the full CSA, including full deployment, the applicable service term, and all recurring and other charges set out in this CSA and Order Form, will automatically come into full force and effect on the day immediately following the end of the POC Period, unless a different Subscription Start Date is expressly stated in this Order Form.`;
+  if(state.pocMode==='paid'){
+    t += ` If Customer terminates, cancels, withdraws from, or otherwise elects not to proceed with the CSA during or at the end of the POC Period, and Provider has satisfied the POC Requirements, then Customer will remain fully liable for the POC Fee, and Provider will have no obligation to refund any portion of the POC Fee.`;
+  }
+  t += ` If Provider does not satisfy the POC Requirements during the POC Period, and Customer timely delivers written notice identifying the unmet POC Requirements before the end of the POC Period, then Customer may elect, as its sole remedy for such failure, either (a) to allow Provider a mutually agreed extension of the POC Period to cure the identified deficiencies, or (b) to terminate the POC and the applicable Order Form on written notice, in which case no POC Fee will be payable and Provider will not invoice the POC Fee or, if already invoiced, will cancel that invoice.`;
+  return t;
+}
+function slaCell(){
+  const avail = state.availTarget||"99.0";
+  const cc = state.creditCap||"20";
+  const mc = state.monthlyCap||"50";
+  const p = state.prios;
+  return `<div><b>In these Service Levels:</b> Credit Cap means an amount equal to ${esc(cc)}% of the Monthly Licence Fee for the Services as set out in the SOW. Response Time means the time which elapses between the time at which a Support Request is received by the Supplier and when the Supplier Responds to the Customer acknowledging receipt and confirming the Priority. Resolution Time means the time which elapses between the time at which a Support Request is received by the Supplier and the time at which it is Resolved by the Supplier. Compliance with each Service Level category is calculated over a monthly period. The maximum cumulative service credit in any month shall not exceed ${esc(mc)}% of that month's recurring charge.</div>
+  <div style="margin-top:6px"><b>Client Solution Availability Service Level.</b> The Supplier will ensure the Client Solution is available to the Customer in accordance with the availability target below.</div>
+  <table class="io" style="margin-top:6px"><tr class="hdr"><td>Service</td><td>Availability target (monthly)</td></tr>
+  <tr><td class="lab">Client Solution Availability</td><td>${esc(avail)}%</td></tr></table>
+  <div style="margin-top:6px"><b>Support Request Service Level.</b> The Supplier will Respond to and Resolve Support Requests within the time frames below.</div>
+  <table class="io" style="margin-top:6px"><tr class="hdr"><td>Priority</td><td>Response Time</td><td>Resolution Time</td></tr>
+  <tr><td class="lab">Priority 1</td><td>${esc(p.p1.resp)}</td><td>${esc(p.p1.reso)}</td></tr>
+  <tr><td class="lab">Priority 2</td><td>${esc(p.p2.resp)}</td><td>${esc(p.p2.reso)}</td></tr>
+  <tr><td class="lab">Priority 3</td><td>${esc(p.p3.resp)}</td><td>${esc(p.p3.reso)}</td></tr>
+  <tr><td class="lab">Priority 4</td><td>${esc(p.p4.resp)}</td><td>${esc(p.p4.reso)}</td></tr></table>
+  <div style="margin-top:6px"><b>Priority 1</b> means an Incident that has a critical impact on the Customer or its client(s)' use of the Client Solution, involving Unscheduled Downtime and complete outage, severe performance degradation, or other failure that prevents access to the Client Solution. <b>Priority 2</b> means an Incident that has a major impact and materially impacts the ability to access the Client Solution. <b>Priority 3</b> means an Incident not covered by Priority 1 and 2 that does not have a material impact on the Customer's business. <b>Priority 4</b> means a Support Request with no immediate impact (for example, an aesthetic change request, how-to questions, password and access queries/resets).</div>
+  <div style="margin-top:6px"><b>Client Solution Availability formula:</b> (T - D) / T x 100, where T = Days in month x 24 hrs x 60 minutes and D = Minutes of Unscheduled Downtime. A Service Level Default occurs in relation to the Support Request Service Level where the Supplier fails to meet a Response or Resolution Time for a Priority 1 or Priority 2 Support Request.</div>`;
+}
+function hardwareCell(){
+  const nodes = state.nodeCount||"__";
+  const gpn = parseInt(state.gpusPerNode)||0;
+  const total = (parseInt(nodes)||0)*gpn;
+  const head = `<b>${esc(nodes)} Nodes${total?` (${total} GPUs)`:""}</b>`;
+  const rows = state.specRows.filter(r=>r.label||r.value)
+    .map(r=>`<tr><td class="lab">${esc(r.label)}</td><td>${esc(r.value)}</td></tr>`).join("");
+  return `${head}<table class="io" style="margin-top:6px">${rows}</table>`;
+}
+
+function orderFormRows(){
+  let rows = [];
+  const poc = pocCell();
+  if(poc) rows.push(["Proof of Concept", poc]);
+  rows.push(["Cloud Service", esc(state.cloudDesc)]);
+  rows.push([`Subscription Start Date<span class="sub2">The date access to the Cloud Service starts</span>`, esc(state.startDate)]);
+  rows.push([`Subscription Period<span class="sub2">Length of Cloud Service access</span>`, esc(state.subPeriod)]);
+  rows.push(["Auto-renewal", `<b>Non-Renewal Notice Date:</b> ${esc(state.nonRenewal)}`]);
+  rows.push(["Use Limitations", esc(state.useLimit)]);
+  rows.push([`SLA<span class="sub2">Service Level Agreement</span>`, slaCell()]);
+  rows.push(["Cloud Service (Compute resources)", hardwareCell()]);
+  rows.push(["Cloud Service Fee", nl2br(state.fee)]);
+  rows.push([`Payment Period<span class="sub2">Time frame for Customer to pay invoices</span>`, nl2br(state.payPeriod)]);
+  rows.push([`Invoice Period<span class="sub2">How frequently Provider sends invoices</span>`, esc(state.invPeriod)]);
+  return rows;
+}
+function keyTermsRows(){
+  let rows = [];
+  rows.push([`Effective Date<span class="sub2">The date the Agreement starts</span>`, esc(state.effDate)]);
+  rows.push([`Covered Claims<span class="sub2">Claims covered by indemnity obligations</span>`,
+     `<b>Provider Covered Claims:</b> ${nl2br(state.provClaims)}<br><br><b>Customer Covered Claims:</b> ${nl2br(state.custClaims)}`]);
+  rows.push(["Governing Law", esc(state.govLaw)]);
+  rows.push([`Chosen Courts<span class="sub2">Where disputes are filed</span>`, esc(state.courts)]);
+  rows.push([`Chosen Courts (Non-Payment Claims)`, nl2br(state.courtsNonPay)]);
+  rows.push(["Arbitration", "Certain disputes may be resolved through binding arbitration as set forth in Section 11 (Arbitration)."]);
+  rows.push(["General Cap Amount", nl2br(state.genCap)]);
+  rows.push(["Increased Cap Amount", nl2br(state.incCap)]);
+  rows.push(["Unlimited Claims", nl2br(state.unlimited)]);
+  rows.push(["Increased Claims", nl2br(state.increased)]);
+  rows.push(["Security", nl2br(state.security)]);
+  if(state.publicity==='yes'){
+    rows.push([`Publicity Rights<span class="sub2">Modifying Section 14.7 of the Standard Terms</span>`,
+      "Provider may identify Customer and use Customer's logo and trademarks on Provider's website and in marketing materials to identify Customer as a user of the Product. Customer hereby grants Provider a non-exclusive, royalty-free license to do so in connection with any marketing, promotion, or advertising of Provider or the Product."]);
+  } else {
+    rows.push([`Publicity Rights<span class="sub2">Modifying Section 14.7 of the Standard Terms</span>`,
+      "No change. Neither party may publicly announce the existence of this Agreement without the prior written approval of the other party (Section 14.7 applies unmodified)."]);
+  }
+  return rows;
+}
+
+function ioTable(title,sub,rows){
+  let h = `<table class="io"><tr class="hdr"><td colspan="2"><b>${title}</b>${sub?`<span class="sub">${sub}</span>`:""}</td></tr>`;
+  for(const [k,v] of rows){
+    h += `<tr><td class="lab">${k.replace(/<span class="sub2">/g,'<span style="display:block;font-weight:normal;color:#7c3aed;font-size:9pt">')}</td><td>${v}</td></tr>`;
+  }
+  return h+"</table>";
+}
+function sigBlock(){
+  const cust = esc(state.customerName||"[INSERT NAME]");
+  const ps = esc(state.provSigner||"");
+  const pt = esc(state.provSignerTitle||"");
+  const rows = [
+    ["Signature","",""],["Print Name",ps,""],["Title",pt,""],
+    ["Notice Address<span2>Use email or postal address</span2>", "", esc(state.customerAddr||"")],
+    ["Date","",""]
+  ];
+  let h = `<table class="io sig"><tr><td class="party">PROVIDER: ${esc(state.providerName)}</td><td class="party">CUSTOMER: ${cust}</td></tr>`;
+  // build a 3-col style as 2 stacked? keep simple 3-col: key | provider | customer
+  h = `<table class="io sig" style="margin-top:10px"><tr><td class="k"></td><td class="party">PROVIDER: ${esc(state.providerName)}</td><td class="party">CUSTOMER: ${cust}</td></tr>`;
+  const kv = [
+    ["Signature","",""],
+    ["Print Name",ps,""],
+    ["Title",pt,""],
+    ["Notice Address",esc("hello@io.net"),esc(state.customerAddr||"")],
+    ["Date","",""]
+  ];
+  for(const [k,pv,cv] of kv){
+    h += `<tr><td class="k">${k}</td><td>${pv}</td><td>${cv}</td></tr>`;
+  }
+  return h+"</table>";
+}
+
+function footer(){return `<div class="docfooter">io.net &middot; Confidential - Not for Distribution</div>`;}
+
+function coverPage(){
+  return `
+  <h1 class="doctitle">${esc(state.docTitle)}</h1>
+  ${state.dealName?`<div class="subtitle">${esc(state.dealName)}</div>`:`<div class="subtitle">${esc(state.providerName)} &amp; ${esc(state.customerName)}</div>`}
+  ${ioTable("Order Form","The key business terms of this Agreement are as follows:",orderFormRows())}
+  ${ioTable("Key Terms","The key legal terms of this Agreement are as follows:",keyTermsRows())}
+  <div class="ack">Provider and Customer have not changed the Standard Terms except for the details on the Cover Page above. By signing this Cover Page, each party agrees to enter into this Agreement as of the Effective Date.</div>
+  ${sigBlock()}
+  ${footer()}
+  `;
+}
+
+/* document content shared by the preview and the Word export (single render path) */
+function documentBody(){
+  return coverPage()
+    + `<div class="pagebreak"></div>` + (window.STANDARD_TERMS_HTML||"") + footer();
+}
+/* the running header lives in a table thead, which browsers repeat on every printed
+   page while reserving its space (so it never overlaps body text). On screen the
+   same thead renders once at the top as the cover letterhead. */
+function runHeader(){
+  return `<div class="rhead"><img src="${IO_LOGO}" alt="io.net"><hr></div>`;
+}
+function render(){
+  document.getElementById('doc').innerHTML =
+    `<table class="pframe"><thead><tr><td>${runHeader()}</td></tr></thead>`
+    + `<tbody><tr><td>${documentBody()}</td></tr></tbody></table>`;
+}
+
+/* ---------- Export ---------- */
+function buildFullHtml(){
+  const inner = documentBody();
+  const css = `
+    body{font-family:Arial,sans-serif;color:#111127;font-size:11pt;line-height:1.5}
+    .logo{font-size:22px;font-weight:bold;color:#7c3aed}.logo b{color:#111127}
+    .logorule{border:none;border-bottom:2px solid #7c3aed;margin:6px 0 18px}
+    h1.doctitle{font-size:21px;color:#111127;margin:0 0 2px}
+    .subtitle{color:#5b21b6;font-weight:bold;font-size:13px;margin:0 0 18px}
+    .logoimg{height:22px;width:auto;display:block;margin:0 0 2px}
+    table.io{border-collapse:collapse;width:100%;margin:0 0 6px;font-size:10.5pt}
+    table.io td{border:1px solid #e9d5ff;padding:7px 9px;vertical-align:top}
+    table.io td.lab{background:#f5f3ff;color:#5b21b6;font-weight:bold;width:32%}
+    table.io .hdr td{background:#3b0764;color:#fff;font-weight:bold}
+    table.io .hdr td .sub{display:block;font-weight:normal;color:#c4b5fd;font-size:9pt}
+    .sig td.k{background:#f5f3ff;color:#5b21b6;font-weight:bold;width:18%}
+    .sig td.party{background:#3b0764;color:#fff;font-weight:bold;text-align:center}
+    .docfooter{margin-top:14px;color:#666666;font-size:9pt;border-top:1px solid #e9d5ff;padding-top:6px}
+    .ack{font-size:10.5pt;margin:16px 0}
+    .terms{counter-reset:sec}
+    .terms .legalsec{counter-reset:cl;margin-top:18px}
+    .terms .legalsec>h3{font-size:13px;color:#111127;border-bottom:2px solid #7c3aed;padding-bottom:3px;margin:0 0 8px}
+    .terms .legalsec>h3::before{counter-increment:sec;content:counter(sec) ". "}
+    .terms .cl{margin:8px 0;font-size:10.5pt}.terms .cl>.clt{font-weight:bold}
+    .terms .cl>.clt::before{counter-increment:cl;content:counter(sec) "." counter(cl) "  ";font-weight:bold}
+    .terms .cl.nonum>.clt::before{content:""}
+    .terms ol.alpha{margin:6px 0 6px 18px;padding-left:14px}.terms ol.alpha>li{margin:4px 0;font-size:10.5pt}
+    .terms ul.dash{margin:6px 0 6px 18px;padding-left:14px}.terms ul.dash>li{margin:3px 0;font-size:10.5pt}
+    .terms p.sub{margin:5px 0 5px 18px;font-size:10.5pt}
+    .pagebreak{page-break-before:always}
+    /* Word: named section page with a running header (logo on every page) */
+    @page Section1{size:8.5in 11.0in;margin:1.0in 1.0in 1.0in 1.0in;mso-header-margin:.5in;mso-footer-margin:.5in;mso-header:h1;}
+    div.Section1{page:Section1}
+    p.MsoHeader{margin:0}
+    p.MsoHeader.msohdr{padding-bottom:3pt;border-bottom:1pt solid #7c3aed}
+    .msohdr img{height:15pt;width:auto}
+    @page{size:8.5in 11in;margin:1in}
+  `;
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(state.docTitle)}</title>
+  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+  <style>${css}</style></head><body>
+  <div class="Section1">${inner}</div>
+  <div style='mso-element:header' id="h1"><p class="MsoHeader msohdr"><img src="${IO_LOGO}" alt="io.net"></p></div>
+  </body></html>`;
+}
+function downloadDoc(){
+  const html = buildFullHtml();
+  const blob = new Blob(['\ufeff'+html],{type:'application/msword'});
+  const name = (state.docTitle||"CSA").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")+".doc";
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+
+function loadFluence(){
+  applyPreset("H200 NVL (Fluence)");
+  state.docTitle="Fluence 64 Node H200 NVL 24 months CSA";
+  state.dealName="Fluence | 64-Node H200 NVL | 24 Months";
+  state.customerName="[INSERT NAME]";
+  state.nodeCount="64"; state.gpusPerNode="8";
+  state.pocMode="none";
+  buildForm(); render();
+}
+
+/* mount */
+buildForm();
+</script>
+
+<script>
+/* ============================================================
+   STANDARD TERMS + EXHIBIT A  (fixed boilerplate, verbatim)
+   ============================================================ */
+window.STANDARD_TERMS_HTML = `
+<div class="terms">
+<h2 class="sec">Standard Terms</h2>
+
+<div class="legalsec"><h3>Service</h3>
+  <div class="cl"><span class="clt">Access and Use.</span> During the Subscription Period and subject to the Use Limitations, Customer may (a) access and use the Cloud Service; and (b) copy and use the included Software and Documentation only as needed to access and use the Cloud Service, in each case, for its internal business purposes and only if Customer complies with the terms of this Agreement.</div>
+  <div class="cl"><span class="clt">Additional Machines.</span> Any servers, machines, GPUs, or other compute resources provided by Provider to Customer in addition to those expressly identified in an applicable Order Form or Cover Page ("Additional Machines") will be activated only upon Customer's prior written consent and, once so activated or otherwise expressly accepted in writing by Customer, will be deemed part of the Cloud Service and will be governed by and subject to all terms and conditions of this Agreement, including payment obligations, usage restrictions, suspension rights, and termination provisions. If Provider provisions any Additional Machines without Customer's prior written consent, Customer may reject those Additional Machines by written notice within forty-eight (48) hours after provisioning, and upon such rejection, Customer will have no payment or other financial obligation with respect to those Additional Machines and will not be deemed to have accepted them. Customer shall not terminate, return, or discontinue use of any Additional Machines except strictly in accordance with the termination and notice requirements set forth in this Agreement. Any temporary, trial, or goodwill provisioning will not be deemed outside the scope of this Agreement; provided, however, that no such temporary, trial, or goodwill provisioning will create any payment obligation unless and until Customer expressly accepts such provisioning in writing.</div>
+  <div class="cl"><span class="clt">Service Level.</span> Service availability, downtime, and any applicable service credits shall be governed by Exhibit A (Service Availability, Downtime, and Credits) and, if expressly applicable, any service level agreement ("SLA") set forth in a Cover Page or Order Form. Exhibit A shall control the definition, classification, verification, and exclusion of Downtime, including what constitutes Covered Downtime. If the Cloud Service does not meet an applicable SLA, Provider will provide only the remedies expressly set forth in the SLA, subject to the limitations and exclusions in Exhibit A. Service credits shall not be cumulative or duplicative, and no Customer shall be entitled to receive service credits under both an SLA and Exhibit A for the same event or period. Any service credits issued under this Agreement:
+    <ol class="alpha" type="a">
+      <li>shall apply only to future invoices;</li>
+      <li>are non-transferable and not redeemable for cash;</li>
+      <li>shall expire automatically upon termination or expiration of this Agreement; and</li>
+      <li>shall not exceed the fees paid by Customer for the affected service during the applicable billing period.</li>
+    </ol>
+    No SLA remedies or service credits shall accrue for any unavailability or interruption caused by scheduled maintenance, unscheduled or emergency maintenance, or other causes beyond Provider's reasonable control, including any exclusions set forth in Exhibit A. All Downtime and service credit determinations, including existence, cause, duration, and eligibility, are subject to verification by Provider, and Provider's determination shall be final and binding. Any service credits provided pursuant to this Section, the SLA, or Exhibit A shall constitute Customer's sole and exclusive remedy for service unavailability, Downtime, or failure to meet service levels.</div>
+  <div class="cl"><span class="clt">Support.</span> During the Subscription Period, Provider will provide Technical Support as described in the Cover Page, if any.</div>
+  <div class="cl"><span class="clt">User Accounts.</span> Customer is responsible for all actions on Users' accounts and for Users' compliance with this Agreement. Customer and Users must protect the confidentiality of their passwords and login credentials. Customer will promptly notify Provider if it suspects or knows of any fraudulent activity with its accounts, passwords, or credentials, or if they become compromised.</div>
+  <div class="cl"><span class="clt">Affiliates.</span> If authorized in a Cover Page, individuals from Customer's Affiliates may access Customer's account as Users under Customer's Agreement and Customer will be responsible for its Affiliates' compliance with this Agreement. If a Customer Affiliate enters a separate Cover Page with Provider, the Customer's Affiliate creates a separate agreement between Provider and that Affiliate, where Provider's responsibility to the Affiliate is individual and separate from Customer and Customer is not responsible for its Affiliates' agreement.</div>
+  <div class="cl"><span class="clt">Feedback and Usage Data.</span> Customer may, but is not required to, give Provider Feedback, in which case Customer gives Feedback "AS IS". Provider may use all Feedback freely without any restriction or obligation. In addition, Provider may collect and analyze Usage Data, and Provider may freely use Usage Data to maintain, improve, and enhance Provider's products and services without restriction or obligation. However, Provider may only share Usage Data with others if the Usage Data is aggregated and does not identify Customer or Users.</div>
+  <div class="cl"><span class="clt">Customer Content.</span> Provider may copy, display, modify, and use Customer Content only as needed to provide and maintain the Product and related offerings. Customer is responsible for the accuracy and content of Customer Content.</div>
+</div>
+
+<div class="legalsec"><h3>Restrictions &amp; Obligations</h3>
+  <div class="cl"><span class="clt">Restrictions on Customer.</span>
+    <p class="sub">Except as expressly permitted by this Agreement, Customer will not (and will not allow anyone else to): (i) reverse engineer, decompile, or attempt to discover any source code or underlying ideas or algorithms of the Product (except to the extent Applicable Laws prohibit this restriction); (ii) provide, sell, transfer, sublicense, lend, distribute, rent, or otherwise allow others to access or use the Product; (iii) remove any proprietary notices or labels; (iv) copy, modify, or create derivative works of the Product; (v) conduct security or vulnerability tests on, interfere with the operation of, cause performance degradation of, or circumvent access restrictions of the Product; (vi) access accounts, information, data, or portions of the Product to which Customer does not have explicit authorization; (vii) use the Product to develop a competing service or product; (viii) use the Product with any High Risk Activities or with activity prohibited by Applicable Laws; (ix) use the Product to obtain unauthorized access to anyone else's networks or equipment; or (x) upload, submit, or otherwise make available to the Product any Customer Content to which Customer and Users do not have the proper rights.</p>
+    <p class="sub">Customer's use of the Product must comply with all Documentation and the Acceptable Use Policy, if any.</p></div>
+  <div class="cl"><span class="clt">Suspension.</span> If Customer (a) has an outstanding, undisputed balance on its account for more than 30 days after the Payment Period; (b) breaches Section 2.1 (Restrictions on Customer); or (c) uses the Product in violation of the Agreement or in a way that materially and negatively impacts the Product or others, then Provider may temporarily suspend Customer's access to the Product with or without notice. However, Provider will try to inform Customer before suspending Customer's account when practical. Provider will reinstate Customer's access to the Product only if Customer resolves the underlying issue.</div>
+</div>
+
+<div class="legalsec"><h3>Professional Services</h3>
+  <div class="cl nonum"><span class="clt"></span>Provider will perform the Professional Services as detailed in a Cover Page, if any, and Customer will reasonably cooperate with Provider to allow the performance of Professional Services, including providing Customer Content as needed. Provider is not responsible for any inability to perform the Professional Services if Customer does not cooperate as reasonably requested.</div>
+</div>
+
+<div class="legalsec"><h3>Privacy &amp; Security</h3>
+  <div class="cl"><span class="clt">Personal Data.</span> Before submitting Personal Data governed by GDPR, Customer must enter into a data processing agreement with Provider. If the parties have a DPA, the terms of the DPA will control each party's rights and obligations as to Personal Data and the terms of the DPA will control in the event of any conflict with this Agreement.</div>
+  <div class="cl"><span class="clt">Prohibited Data.</span> Customer will not (and will not allow anyone else to) submit Prohibited Data to the Product unless authorized by the Cover Page.</div>
+  <div class="cl"><span class="clt">Security.</span> Provider will comply with the Security Policy, if any.</div>
+</div>
+
+<div class="legalsec"><h3>Payment &amp; Taxes</h3>
+  <div class="cl"><span class="clt">Fees and Invoices.</span> All fees are in U.S. Dollars and are exclusive of taxes. Except for the prorated refund of prepaid fees allowed with specific termination rights, fees are non-refundable. Provider will send invoices for fees applicable to the Product once per Invoice Period in advance starting on the Subscription Start Date. Invoices for Professional Services may be sent monthly during performance of the Professional Services unless the Cover Page includes a different cadence.</div>
+  <div class="cl"><span class="clt">Payment.</span> Customer will pay Provider the fees and taxes in each invoice in U.S. Dollars within the Payment Period.</div>
+  <div class="cl"><span class="clt">Taxes.</span> Customer is responsible for all duties, taxes, and levies that apply to fees, including sales, use, VAT, GST, or withholding, that Provider itemizes and includes in an invoice. However, Customer is not responsible for Provider's income taxes.</div>
+  <div class="cl"><span class="clt">Payment Dispute.</span> If Customer has a good-faith disagreement about the amounts charged on an invoice, Customer must notify Provider about the dispute during the Payment Period for the invoice and must pay all undisputed amounts on time. The parties will work together to resolve the dispute within 15 days after the end of the Payment Period. If no resolution is agreed, each party may pursue any remedies available under the Agreement or Applicable Laws.</div>
+</div>
+
+<div class="legalsec"><h3>Term &amp; Termination</h3>
+  <div class="cl"><span class="clt">Subscription Period.</span> Each Order Form will start on the Subscription Start Date, continue for the Subscription Period, and automatically renew for additional Subscription Periods unless one party gives notice of non-renewal to the other party before the Non-Renewal Notice Date.</div>
+  <div class="cl"><span class="clt">Agreement Term.</span> This Agreement will start on the Effective Date and continue for the longer of one year or until all Subscription Periods have ended.</div>
+  <div class="cl"><span class="clt">Termination.</span> Either party may terminate this Agreement if the other party (a) fails to cure a material breach of the Agreement within 30 days after receiving notice of the breach; (b) materially breaches the Agreement in a manner that cannot be cured; (c) dissolves or stops conducting business without a successor; (d) makes an assignment for the benefit of creditors; or (e) becomes the debtor in insolvency, receivership, or bankruptcy proceedings that continue for more than 60 days. In addition, either party may terminate an affected Order Form if a Force Majeure Event prevents the Product from materially operating for 30 or more consecutive days, and Provider will pay to Customer a prorated refund of prepaid fees for the remainder of the Subscription Period. A party must notify the other of its reason for termination.</div>
+  <div class="cl"><span class="clt">Effect of Termination.</span> Termination of the Agreement will automatically terminate all Order Forms. Upon expiration or termination:
+    <ol class="alpha" type="a">
+      <li>Customer will no longer have any right to use the Product, Technical Support, or Professional Services.</li>
+      <li>Upon Customer's request, Provider will delete Customer Content within 60 days.</li>
+      <li>Each Recipient will return or destroy Discloser's Confidential Information in its possession or control.</li>
+      <li>Provider will submit a final invoice for all outstanding fees accrued before termination and Customer will pay the invoice according to Section 5 (Payment &amp; Taxes).</li>
+    </ol></div>
+  <div class="cl"><span class="clt">Survival.</span> The following sections will survive expiration or termination of the Agreement: Section 1.6 (Feedback and Usage Data), Section 2.1 (Restrictions on Customer), Section 5 (Payment &amp; Taxes) for fees accrued or payable before expiration or termination, Section 6.4 (Effect of Termination), Section 6.5 (Survival), Section 7 (Representations &amp; Warranties), Section 8 (Disclaimer of Warranties), Section 9 (Limitation of Liability), Section 10 (Indemnification), Section 11 (Arbitration), Section 12 (Confidentiality), Section 13 (Reservation of Rights), Section 14 (General Terms), Section 15 (Definitions), and the portions of a Cover Page referenced by these sections. Each Recipient may retain Discloser's Confidential Information in accordance with its standard backup or record retention policies maintained in the ordinary course of business or as required by Applicable Laws, in which case Section 4 (Privacy &amp; Security) and Section 12 (Confidentiality) will continue to apply to retained Confidential Information.</div>
+</div>
+
+<div class="legalsec"><h3>Representations &amp; Warranties</h3>
+  <div class="cl"><span class="clt">Mutual.</span> Each party represents and warrants to the other that: (a) it has the legal power and authority to enter into this Agreement; (b) it is duly organized, validly existing, and in good standing under the Applicable Laws of the jurisdiction of its origin; (c) it will comply with all Applicable Laws in performing its obligations or exercising its rights in this Agreement; and (d) it will comply with the Additional Warranties.</div>
+  <div class="cl"><span class="clt">From Customer.</span> Customer represents and warrants that it, all Users, and anyone submitting Customer Content each have and will continue to have all rights necessary to submit or make available Customer Content to the Product and to allow the use of Customer Content as described in the Agreement.</div>
+  <div class="cl"><span class="clt">From Provider.</span> Provider represents and warrants to Customer that (a) it will not materially reduce the general functionality of the Cloud Service during a Subscription Period; and (b) it will perform Professional Services in a competent and professional manner.</div>
+  <div class="cl"><span class="clt">Provider Warranty Remedy.</span> If Provider breaches a warranty in Section 7.3, Customer must give Provider notice (with enough detail for Provider to understand or replicate the issue) within 45 days of discovering the issue. Within 45 days of receiving sufficient details of the warranty issue, Provider will attempt to restore the general functionality of the Cloud Service or reperform the Professional Services. If Provider cannot resolve the issue, Customer may terminate the affected Order Form and Provider will pay to Customer a prorated refund of prepaid fees for the remainder of the Subscription Period. Provider's restoration and reperformance obligations, and Customer's termination right, are Customer's only remedies if Provider does not meet the warranties in Section 7.3.</div>
+</div>
+
+<div class="legalsec"><h3>Disclaimer of Warranties</h3>
+  <div class="cl nonum"><span class="clt"></span>Provider makes no guarantees that the Product will always be safe, secure, or error-free, or that it will function without disruptions, delays, or imperfections. The warranties in Section 7.3 do not apply to any misuse or unauthorized modification of the Product, nor to any product or service provided by anyone other than Provider. Except for the warranties in Section 7, Provider and Customer each disclaim all other warranties, whether express or implied, including the implied warranties of merchantability, fitness for a particular purpose, title, and non-infringement. These disclaimers apply to the maximum extent permitted by Applicable Laws.</div>
+</div>
+
+<div class="legalsec"><h3>Limitation of Liability</h3>
+  <div class="cl"><span class="clt">Liability Caps.</span> If there are Increased Claims, each party's total cumulative liability for the Increased Claims arising out of or relating to this Agreement will not be more than the Increased Cap Amount. Each party's total cumulative liability for all other claims arising out of or relating to this Agreement will not be more than the General Cap Amount.</div>
+  <div class="cl"><span class="clt">Damages Waiver.</span> Each party's liability for any claim or liability arising out of or relating to this Agreement will be limited to the fullest extent permitted by Applicable Laws. Under no circumstances will either party be liable to the other for lost profits or revenues, or for consequential, special, indirect, exemplary, punitive, or incidental damages relating to this Agreement, even if the party is informed of the possibility of this type of damage in advance.</div>
+  <div class="cl"><span class="clt">Exceptions.</span> The liability caps in Section 9.1 and the damages waiver in Section 9.2 do not apply to any Unlimited Claims. The damages waiver in Section 9.2 does not apply to any Increased Claims.</div>
+</div>
+
+<div class="legalsec"><h3>Indemnification</h3>
+  <div class="cl"><span class="clt">Protection by Provider.</span> Provider will indemnify, defend, and hold harmless Customer from and against all Provider Covered Claims made by someone other than Customer, Customer's Affiliates, or Users, and all out-of-pocket damages, awards, settlements, costs, and expenses, including reasonable attorneys' fees and other legal expenses, that arise from the Provider Covered Claim.</div>
+  <div class="cl"><span class="clt">Protection by Customer.</span> Customer will indemnify, defend, and hold harmless Provider from and against all Customer Covered Claims made by someone other than Provider or its Affiliates, and all out-of-pocket damages, awards, settlements, costs, and expenses, including reasonable attorneys' fees and other legal expenses, that arise from the Customer Covered Claim.</div>
+  <div class="cl"><span class="clt">Procedure.</span> The Indemnifying Party's obligations in this section are contingent upon the Protected Party: (a) promptly notifying the Indemnifying Party of each Covered Claim for which it seeks protection; (b) providing reasonable assistance to the Indemnifying Party at the Indemnifying Party's expense; and (c) giving the Indemnifying Party sole control over the defense and settlement of each Covered Claim. A Protected Party may participate in a Covered Claim for which it seeks protection with its own attorneys only at its own expense. The Indemnifying Party may not agree to any settlement of a Covered Claim that contains an admission of fault or otherwise materially and adversely impacts the Protected Party without the prior written consent of the Protected Party.</div>
+  <div class="cl"><span class="clt">Changes to Product.</span> If required by settlement or court order, or if deemed reasonably necessary in response to a Provider Covered Claim, Provider may: (a) obtain the right for Customer to continue using the Product; (b) replace or modify the affected component of the Product without materially reducing the general functionality of the Product; or (c) if neither (a) nor (b) are reasonable, terminate the affected Order Form and issue a pro-rated refund of prepaid fees for the remainder of the Subscription Period.</div>
+  <div class="cl"><span class="clt">Exclusions.</span> Provider's obligations as an Indemnifying Party will not apply to Provider Covered Claims that result from (i) modifications to the Product that were not authorized by Provider or that were made in compliance with Customer's instructions; (ii) unauthorized use of the Product, including use in violation of this Agreement; (iii) use of the Product in combination with items not provided by Provider; or (iv) use of an old version of the Product where a newer release would avoid the Provider Covered Claim. Customer's obligations as an Indemnifying Party will not apply to Customer Covered Claims that result from the unauthorized use of the Customer Content, including use in violation of this Agreement.</div>
+  <div class="cl"><span class="clt">Exclusive Remedy.</span> This Section 10 (Indemnification), together with any termination rights, describes each Protected Party's exclusive remedy and each Indemnifying Party's entire liability for a Covered Claim.</div>
+</div>
+
+<div class="legalsec"><h3>Arbitration</h3>
+  <div class="cl"><span class="clt">Good-Faith Negotiation; Escalation.</span> If any dispute, claim, or controversy arises out of or relates to this Agreement (a "Dispute"), either Party may provide written notice describing the Dispute in reasonable detail (a "Notice of Dispute") in accordance with the Notices provision of this Agreement. Within ten (10) Business Days after receipt of a Notice of Dispute, each Party shall designate a representative with authority to resolve the Dispute, and such representatives shall promptly meet (in person or by videoconference) and negotiate in good faith.</div>
+  <div class="cl"><span class="clt">Arbitration Trigger.</span> If the Dispute is not resolved within twenty (20) Business Days after the initial escalation meeting (or such longer period as the Parties may agree in writing), either Party may submit the Dispute to binding arbitration by serving a written demand for arbitration (a "Notice of Arbitration") on the other Party and filing it with JAMS in accordance with this Section.</div>
+  <div class="cl"><span class="clt">Agreement to Arbitrate; Broad Scope.</span> Except as expressly permitted under Section 11.10 (Permitted Court Proceedings), the Parties shall finally resolve by binding arbitration any and all Disputes arising out of or relating to this Agreement, including any dispute regarding its existence, validity, formation, interpretation, performance, breach, termination, or enforceability, and any statutory, tort, equitable, or other non-contractual claims related to this Agreement or the services. This arbitration agreement shall be broadly interpreted and shall apply, to the fullest extent permitted by law, to Disputes involving the Parties and their respective Affiliates, directors, officers, employees, agents, successors, and permitted assigns, to the extent such Disputes relate to this Agreement or the services contemplated hereby.</div>
+  <div class="cl"><span class="clt">Administrator; Rules; Commencement.</span> The arbitration shall be administered by JAMS. Unless the Parties agree otherwise in writing:
+    <ul class="dash">
+      <li>If the aggregate amount in controversy (exclusive of attorneys' fees, interest, and costs) is USD 250,000 or less, the arbitration shall be conducted under the JAMS Streamlined Arbitration Rules &amp; Procedures in effect at the time the Notice of Arbitration is filed.</li>
+      <li>If the aggregate amount in controversy exceeds USD 250,000, the arbitration shall be conducted under the JAMS Comprehensive Arbitration Rules &amp; Procedures in effect at the time the Notice of Arbitration is filed.</li>
+    </ul>
+    If there is any conflict between the applicable JAMS rules and this Section, this Section shall control to the extent permitted by law. The Notice of Arbitration must: (i) identify the Parties; (ii) state the nature of the Dispute and relief sought; (iii) include a copy of this Dispute Resolution clause; and (iv) be served in accordance with the Notices provision of this Agreement. The initiating Party shall also file the Notice of Arbitration with JAMS in accordance with the applicable rules.</div>
+  <div class="cl"><span class="clt">Seat; Venue; Remote Proceedings.</span> The seat (legal place) of arbitration shall be Wilmington, Delaware. If a court determines that Wilmington, Delaware is not a permissible or enforceable seat, the seat shall be New York, as an alternate seat. The tribunal may conduct hearings, conferences, and procedural matters by videoconference or other remote means and may order a documents-only arbitration where permitted under the applicable JAMS rules and consistent with due process.</div>
+  <div class="cl"><span class="clt">Number of Arbitrators; Appointment.</span> The tribunal shall consist of one (1) arbitrator, unless: (a) the amount in controversy exceeds USD 1,000,000 and either Party requests three arbitrators in the Notice of Arbitration or its response; or (b) the Parties agree otherwise in writing. Arbitrator(s) shall be appointed in accordance with the applicable JAMS rules. Arbitrators shall be neutral, independent, and impartial, and shall have substantial experience in commercial contracts and technology or cloud services disputes, unless otherwise agreed.</div>
+  <div class="cl"><span class="clt">Interim Measures; Emergency Relief.</span> The tribunal may grant any interim, emergency, or conservatory relief permitted under the Federal Arbitration Act and applicable JAMS rules, including temporary restraining orders and preliminary injunctions. A request by a Party for interim or emergency relief from a court pursuant to Section 11.10 shall not constitute a waiver of arbitration.</div>
+  <div class="cl"><span class="clt">Cost.</span> In any arbitration arising out of or related to this Agreement, the arbitrator shall award to the prevailing party, if any, the reasonable costs for legal representation incurred by the prevailing party in connection with the arbitration. If the arbitrator determines a party to be the prevailing party under the circumstances where the prevailing party won on some but not all of its claims and counterclaims, the arbitrator may award the prevailing party an appropriate percentage of the reasonable costs for legal representation incurred by the prevailing party in connection with the arbitration.</div>
+  <div class="cl"><span class="clt">Confidentiality of Arbitration.</span> The existence of the arbitration and all pleadings, submissions, evidence, hearings, transcripts, orders, and awards (collectively, "Arbitration Materials") shall be treated as Confidential Information, except to the extent disclosure is: (i) required to prosecute or defend the arbitration; (ii) made to a Party's Affiliates, officers, directors, employees, insurers, auditors, or professional advisers under confidentiality obligations; (iii) required by law or court order; or (iv) necessary to enforce, confirm, or challenge an award. The tribunal may issue protective orders, including attorneys'-eyes-only protections, as necessary.</div>
+  <div class="cl"><span class="clt">Permitted Court Proceedings (Carve-Outs).</span> Nothing in this Section prevents either Party from seeking temporary, preliminary, or permanent injunctive or equitable relief in any court of competent jurisdiction, including the Delaware Court of Chancery or the U.S. District Court for the District of Delaware, for: (i) actual or threatened breach of confidentiality; (ii) misappropriation or infringement of intellectual property rights; (iii) unauthorized access to or misuse of systems or data; or (iv) enforcement of payment obligations. All other aspects of such Disputes shall be resolved by arbitration.</div>
+  <div class="cl"><span class="clt">Survival.</span> This Section 11 shall survive expiration or termination of this Agreement and shall apply to all Disputes arising before, during, or after termination.</div>
+</div>
+
+<div class="legalsec"><h3>Confidentiality</h3>
+  <div class="cl"><span class="clt">Non-Use and Non-Disclosure.</span> Unless otherwise authorized in the Agreement, Recipient will (a) only use Discloser's Confidential Information to fulfill its obligations or exercise its rights under this Agreement; and (b) not disclose Discloser's Confidential Information to anyone else. In addition, Recipient will protect Discloser's Confidential Information using at least the same protections Recipient uses for its own similar information but no less than a reasonable standard of care.</div>
+  <div class="cl"><span class="clt">Exclusions.</span> Confidential Information does not include information that (a) Recipient knew without any obligation of confidentiality before disclosure by Discloser; (b) is or becomes publicly known and generally available through no fault of Recipient; (c) Recipient receives under no obligation of confidentiality from someone else who is authorized to make the disclosure; or (d) Recipient independently developed without use of or reference to Discloser's Confidential Information.</div>
+  <div class="cl"><span class="clt">Required Disclosures.</span> Recipient may disclose Discloser's Confidential Information to the extent required by Applicable Laws if, unless prohibited by Applicable Laws, Recipient provides the Disclosing Party reasonable advance notice of the required disclosure and reasonably cooperates, at the Discloser's expense, with the Discloser's efforts to obtain confidential treatment for the Confidential Information.</div>
+  <div class="cl"><span class="clt">Permitted Disclosures.</span> Recipient may disclose Discloser's Confidential Information to Users, employees, advisors, contractors, and representatives who each have a need to know the Confidential Information, but only if the person or entity is bound by confidentiality obligations at least as protective as those in this Section 12 and Recipient remains responsible for everyone's compliance with the terms of this Section 12.</div>
+</div>
+
+<div class="legalsec"><h3>Reservation of Rights</h3>
+  <div class="cl nonum"><span class="clt"></span>Except for the limited license to copy and use Software and Documentation in Section 1.1 (Access and Use), Provider retains all right, title, and interest in and to the Product, whether developed before or after the Effective Date. Except for the limited rights in Section 1.7 (Customer Content), Customer retains all right, title, and interest in and to the Customer Content.</div>
+</div>
+
+<div class="legalsec"><h3>General Terms</h3>
+  <div class="cl"><span class="clt">Entire Agreement.</span> This Agreement is the only agreement between the parties about its subject and this Agreement supersedes all prior or contemporaneous statements (whether in writing or not) about its subject. Provider expressly rejects any terms included in Customer's purchase order or similar document, which may only be used for accounting or administrative purposes.</div>
+  <div class="cl"><span class="clt">Modifications, Severability, and Waiver.</span> Any waiver, modification, or change to the Agreement must be in writing and signed or electronically accepted by each party. However, Provider may update Technical Support, the SLA, the Security Policy, or the Acceptable Use Policy by giving Customer 30 days prior notice. During the 30-day notice period, Customer may terminate the Agreement or affected Order Form upon notice if the update is a material reduction from the prior version and Provider cannot reasonably restore the prior version or a comparable alternative. If any term of this Agreement is determined to be invalid or unenforceable by a relevant court or governing body, the remaining terms of this Agreement will remain in full force and effect. The failure of a party to enforce a term or to exercise an option or right in this Agreement will not constitute a waiver by that party of the term, option, or right.</div>
+  <div class="cl"><span class="clt">Governing Law and Chosen Courts.</span> The Governing Law will govern all interpretations and disputes about this Agreement, without regard to its conflict of laws provisions. The parties will bring any legal suit, action, or proceeding about this Agreement in the Chosen Courts and each party irrevocably submits to the exclusive jurisdiction of the Chosen Courts.</div>
+  <div class="cl"><span class="clt">Injunctive Relief.</span> Despite Section 14.3 (Governing Law and Chosen Courts), a breach of Section 12 (Confidentiality) or the violation of a party's intellectual property rights may cause irreparable harm for which monetary damages cannot adequately compensate. As a result, upon the actual or threatened breach of Section 12 (Confidentiality) or violation of a party's intellectual property rights, the non-breaching or non-violating party may seek appropriate equitable relief, including an injunction, in any court of competent jurisdiction without the need to post a bond and without limiting its other rights or remedies.</div>
+  <div class="cl"><span class="clt">Non-Exhaustive Remedies.</span> Except where the Agreement provides for an exclusive remedy, seeking or exercising a remedy does not limit the other rights or remedies available to a party.</div>
+  <div class="cl"><span class="clt">Assignment.</span> Neither party may assign any rights or obligations under this Agreement without the prior written consent of the other party. However, either party may assign this Agreement upon notice if the assigning party undergoes a merger, change of control, reorganization, or sale of all or substantially all its equity, business, or assets to which this Agreement relates. Any attempted but non-permitted assignment is void. This Agreement will be binding upon and inure to the benefit of the parties and their permitted successors and assigns.</div>
+  <div class="cl"><span class="clt">No Publicity.</span> Neither party may publicly announce the existence of this Agreement without the prior written approval of the other party.</div>
+  <div class="cl"><span class="clt">Notices.</span> Any notice, request, or approval about the Agreement must be in writing and sent to the Notice Address. Notices will be deemed given (a) upon confirmed delivery if by email, registered or certified mail, or personal delivery; or (b) two days after mailing if by overnight commercial delivery.</div>
+  <div class="cl"><span class="clt">Independent Contractors.</span> The parties are independent contractors, not agents, partners, or joint venturers. Neither party is authorized to bind the other to any liability or obligation.</div>
+  <div class="cl"><span class="clt">No Third-Party Beneficiary.</span> There are no third-party beneficiaries of this Agreement.</div>
+  <div class="cl"><span class="clt">Force Majeure.</span> Neither party will be liable for a delay or failure to perform its obligations of this Agreement if caused by a Force Majeure Event. However, this section does not excuse Customer's obligations to pay fees.</div>
+  <div class="cl"><span class="clt">Export Controls.</span> Customer may not remove or export from the United States or allow the export or re-export of the Product or any related technology or materials in violation of any restrictions, laws, or regulations of the United States Department of Commerce, the United States Department of Treasury Office of Foreign Assets Control, or any other United States or foreign agency or authority.</div>
+  <div class="cl"><span class="clt">Government Rights.</span> The Cloud Service and Software are deemed "commercial items" or "commercial computer software" according to FAR section 12.212 and DFAR section 227.7202, and the Documentation is "commercial computer software documentation" according to DFAR section 252.227-7014(a)(1) and (5). Any use, modification, reproduction, release, performance, display, or disclosure of the Product by the U.S. Government will be governed solely by the terms of this Agreement and all other use is prohibited.</div>
+  <div class="cl"><span class="clt">Anti-Bribery.</span> Neither party will take any action that would be a violation of any Applicable Laws that prohibit the offering, giving, promising to offer or give, or receiving, directly or indirectly, money or anything of value to any third party to assist Provider or Customer in retaining or obtaining business. Examples of these kinds of laws include the U.S. Foreign Corrupt Practices Act and the UK Bribery Act 2010.</div>
+  <div class="cl"><span class="clt">Titles and Interpretation.</span> Section titles are for convenience and reference only. All uses of "including" and similar phrases are non-exhaustive and without limitation. The United Nations Convention for the International Sale of Goods and the Uniform Computer Information Transaction Act do not apply to this Agreement.</div>
+  <div class="cl"><span class="clt">Signature.</span> This Agreement may be signed in counterparts, including by electronic copies or acceptance mechanism. Each copy will be deemed an original and all copies, when taken together, will be the same agreement.</div>
+</div>
+
+<div class="legalsec"><h3>Definitions</h3>
+  <div class="cl nonum"><span class="clt"></span><b>"Affiliate"</b> means an entity that, directly or indirectly, controls, is under the control of, or is under common control with a party, where control means having more than fifty percent (50%) of the voting stock or other ownership interest.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Agreement"</b> means these Standard Terms, together with the Cover Pages between Provider and Customer that include or reference a single set of Key Terms and the policies and documents referenced in or attached to those Cover Pages.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Applicable Data Protection Laws"</b> means the Applicable Laws that govern how the Cloud Service may process or use an individual's personal information, personal data, personally identifiable information, or other similar term.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Applicable Laws"</b> means the laws, rules, regulations, court orders, and other binding requirements of a relevant government authority that apply to or govern Provider or Customer.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Cloud Service"</b> means the product described in an Order Form.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Confidential Information"</b> means information in any form disclosed by or on behalf of a Discloser, including before the Effective Date, to a Recipient in connection with this Agreement that (a) the Discloser identifies as "confidential", "proprietary", or the like; or (b) should be reasonably understood as confidential or proprietary due to its nature and the circumstances of its disclosure. Confidential Information includes the existence of this Agreement and the information on each Cover Page. Customer's Confidential Information includes non-public Customer Content and Provider's Confidential Information includes non-public information about the Product.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Cover Page"</b> means a document that is signed or electronically accepted by the parties that incorporates these Standard Terms, identifies Provider and Customer, and may include an Order Form, Key Terms, or both.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Documentation"</b> means the usage manuals and instructional materials for the Cloud Service or Software that are made available by Provider.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Feedback"</b> means suggestions, feedback, or comments about the Product or related offerings.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Force Majeure Event"</b> means an unforeseen event outside a party's reasonable control where the affected party took reasonable measures to avoid or mitigate the impacts of the event. Examples of these kinds of events include unpredicted natural disaster like a major earthquake, war, pandemic, riot, act of terrorism, or public utility or internet failure.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"GDPR"</b> means European Union Regulation 2016/679 as implemented by local law in the relevant European Union member nation, and by section 3 of the United Kingdom's European Union (Withdrawal) Act of 2018 in the United Kingdom.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"High Risk Activity"</b> means any situation where the use or failure of the Product could be reasonably expected to lead to death, bodily injury, or environmental damage. Examples include full or partial autonomous vehicle technology, medical life-support technology, emergency response services, nuclear facilities operation, and air traffic control.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Indemnifying Party"</b> means a party to this Agreement when the party is providing protection for a particular Covered Claim.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Key Terms"</b> means the portion of a Cover Page that includes the key legal details and definitions for this Agreement that are not defined in the Standard Terms. The Key Terms may include details about Covered Claims, set the Governing Law, or contain other details about this Agreement.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Order Form"</b> means the portion of a Cover Page that includes the key business details and definitions for this Agreement that are not defined in the Standard Terms. An Order Form may include details about the level of access and use granted to the Cloud Service, nature and timing of Professional Services, extent of Technical Support, or other details about the Product.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Personal Data"</b> will have the meaning(s) set forth in the Applicable Data Protection Laws for personal information, personal data, personally identifiable information, or other similar term.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Product"</b> means the Cloud Service, Software, and Documentation.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Prohibited Data"</b> means (a) patient, medical, or other protected health information regulated by the Health Insurance Portability and Accountability Act; (b) credit, debit, bank account, or other financial account numbers; (c) social security numbers, driver's license numbers, or other unique and private government ID numbers; (d) special categories of data as defined in the GDPR; and (e) other similar categories of sensitive information as set forth in the Applicable Data Protection Laws.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Protected Party"</b> means a party to this Agreement when the party is receiving the benefit of protection for a particular Covered Claim.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Recipient"</b> means a party to this Agreement when the party receives Confidential Information from the other party.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Software"</b> means the client-side software or applications made available by Provider for Customer to install, download (whether onto a machine or in a browser), or execute as part of the Product.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Usage Data"</b> means data and information about the provision, use, and performance of the Product and related offerings based on Customer's or User's use of the Product.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"User"</b> means any individual who uses the Product on Customer's behalf or through Customer's account.</div>
+</div>
+
+<div class="exhibit pagebreak">
+<h2>Exhibit A: Service Availability, Downtime, and Credits</h2>
+<div class="legalsec" style="counter-reset:sec"><h3>Definition of Downtime</h3>
+  <div class="cl nonum"><span class="clt"></span>For the purposes of these Terms, "Downtime" means (a) a total loss of network connectivity to the server or (b) a partial or total failure of server hardware (including failure of one or more GPUs, storage devices, network adapters, or other critical components) that renders the Service inaccessible or materially prevents access to the server or use of the provisioned resources as allocated, as measured and verified under the Verification &amp; Reporting section below.</div>
+  <div class="cl nonum"><span class="clt"></span>Downtime does not include partial hardware failures or other conditions that do not prevent access to the server or use of the provisioned resources. However, Downtime includes any thermal throttling, cooling failure, power limit, BIOS/firmware misconfiguration, or other Provider infrastructure condition to the extent it (a) renders the Service inaccessible, (b) materially prevents use of the provisioned resources, or (c) causes a Material Performance Degradation Event.</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Material Performance Degradation Event"</b> means a sustained, verifiable reduction in GPU and/or interconnect performance caused by Provider infrastructure (including thermal, cooling, power, GPU health, or network/interconnect conditions) that has a material adverse effect on Customer's reasonable use of the provisioned resources for their intended purpose, as determined through the parties' joint verification process based on the totality of the circumstances (including the nature of the workload, historical/baseline performance, and whether the condition is more than transient or intermittent).</div>
+  <div class="cl nonum"><span class="clt"></span><b>"Covered Downtime"</b> means verified Downtime that is directly caused by failures of the Provider's hardware and/or network infrastructure or Provider-controlled configuration of the environment.</div>
+  <div class="cl nonum"><span class="clt"></span>The following are excluded from uptime calculations ("Excluded Downtime"): scheduled maintenance with 7 days' prior notice; emergency maintenance by the Provider; outages under 60 seconds; issues caused by Client equipment or actions; force majeure events; and outages of third-party networks or services outside the Provider's control.</div>
+</div>
+<div class="legalsec"><h3>Responsibility Allocation</h3>
+  <div class="cl nonum"><span class="clt"></span><b>Provider is responsible for:</b> hardware faults, thermal throttling, cooling failures, power limits, or BIOS misconfiguration (in each case, to the extent causing Covered Downtime).</div>
+  <div class="cl nonum"><span class="clt"></span><b>Customer is responsible for:</b> low utilization, inefficient model/kernel design, poor batch sizing, bad framework tuning, or CPU/storage/network bottlenecks starving the GPU.</div>
+  <div class="cl nonum"><span class="clt"></span>As a condition to any SLA investigation and/or service credit request, Customer will provide reasonable benchmark evidence and relevant logs/telemetry showing the reported issue, including timestamps, node identifiers, and workload context.</div>
+</div>
+<div class="legalsec"><h3>Credited Downtime</h3>
+  <div class="cl nonum"><span class="clt"></span>Customer may be eligible to receive service credits for verified Downtime that is directly caused by failures of the Company's hardware and/or network infrastructure ("Covered Downtime"). Any service credits issued shall be calculated in accordance with the Company's then-current credit policy and shall constitute the Customer's sole and exclusive remedy for Covered Downtime.</div>
+  <div class="cl nonum"><span class="clt"></span><b>Monthly Credit Cap.</b> Where the Order Form SLA provides that the maximum cumulative credit in any month shall not exceed a stated percentage of that month's recurring charge, the maximum cumulative service credit earned for SLA events occurring in any Service Month will not exceed that percentage of that Service Month's recurring charge for the affected Service (the "Monthly Credit Cap"), regardless of when the credit is applied (including through any mid-term billing adjustment or end-of-term true-up).</div>
+  <div class="cl nonum"><span class="clt"></span><b>Limitation of Credits.</b> Service credits are non-transferable, not redeemable for cash, and shall not exceed the fees paid by the Customer for the affected service during the applicable billing period. Credits will be applied to the next invoice(s) unless the parties agree otherwise in writing. Customer must be current on payment obligations to be eligible to receive credits. Notwithstanding the foregoing, credits will not lapse unused solely due to expiration or termination to the extent Customer's payment structure includes prepaid amounts (including any down payment) and there are insufficient future invoices against which to apply earned credits. In that case, the parties will apply credits through the review/true-up process below.</div>
+  <div class="cl nonum"><span class="clt"></span><b>Mid-Term Billing Review.</b> Within 10 business days after the end of the 8th month of the Term, the parties will review in good faith any pending or accrued SLA events and credit amounts. Any verified credits as of that date will be applied as an adjustment to the 8th month invoice and/or subsequent invoice(s).</div>
+  <div class="cl nonum"><span class="clt"></span><b>End-of-Term Review.</b> Within 30 days after expiration or termination, the parties will complete a final review of SLA events occurring prior to the effective date of expiration/termination and determine any remaining credits owed. Any remaining verified credits will be applied (in order) to: (i) outstanding amounts owed by Customer; (ii) any future invoice(s) if services continue under a renewal or replacement order; and then (iii) prepaid but unused amounts paid by Customer for the affected Service (including any down payment), via invoice adjustment/credit note and refund of the net prepaid balance to the extent necessary to give effect to the credits.</div>
+</div>
+<div class="legalsec"><h3>Excluded Downtime</h3>
+  <div class="cl nonum"><span class="clt"></span>The following shall not be considered Covered Downtime and shall not be eligible for service credits:
+    <ul class="dash">
+      <li><b>Emergency Maintenance:</b> Downtime arising from emergency or unscheduled maintenance required to address security vulnerabilities, stability issues, firmware updates, hardware replacement, or other urgent operational needs, whether or not advance notice is provided.</li>
+      <li><b>Customer-Caused Issues:</b> Downtime caused by Customer actions or configurations, including misconfigurations, improper system administration, software errors, broken or misbehaving services, unsupported modifications, or violations of these Terms.</li>
+      <li><b>GPU Software Stack and Driver Issues:</b> Failures or interruptions related to operating systems, GPU drivers, CUDA, ROCm, firmware, container runtimes, orchestration platforms, or other software components not directly caused by the Company's underlying hardware.</li>
+      <li><b>Customer Workloads:</b> Downtime resulting from Customer workloads, including GPU resets, kernel panics, resource exhaustion, watchdog timeouts, or similar workload-induced conditions.</li>
+      <li><b>Distributed or Multi-Node Workloads:</b> Failures related to distributed training, multi-node synchronization, inter-process communication, or workload orchestration, unless directly caused by a verified failure of the Company's network infrastructure.</li>
+      <li><b>Third-Party Factors:</b> Downtime caused by third-party software, services, networks, or dependencies not under the Company's direct control.</li>
+    </ul>
+    The data centre SLA excludes GPU software stack/driver issues and distributed or multi-node workload failures unless classified as verified network failures. However, the Data Centre will adhere to SLA commitments for any infrastructure-level, GPU-level, or network-level issues, and will run HPL and NCCL tests to ensure cluster stability, interconnect performance, and efficient multi-node communication, thereby validating that the environment is production-ready before it is handed over to the Customer.</div>
+</div>
+<div class="legalsec"><h3>Verification &amp; Reporting</h3>
+  <div class="cl nonum"><span class="clt"></span>All Downtime and service credit claims must be submitted within a reasonable time after the event and are subject to verification by the Provider. All SLA events shall be subject to a joint verification process between the parties. Each party shall be entitled to utilize its own monitoring systems, benchmarking tools, and collected performance data as part of this verification. Any determination of an SLA event, including its validity and impact, shall be mutually reviewed and agreed upon in good faith based on the available data from both parties.</div>
+  <div class="cl nonum"><span class="clt"></span>The parties will use the following joint verification process (the "Joint Verification Process") for any alleged SLA event (including Covered Downtime and Material Performance Degradation Events):
+    <ul class="dash">
+      <li><b>Notice.</b> Customer will notify Provider with reasonably detailed information (including timestamps, impacted nodes, symptoms, and any available logs/metrics).</li>
+      <li><b>Data sharing.</b> Each party will share relevant monitoring and benchmarking data reasonably necessary to assess the event, including Provider-side infrastructure telemetry and Customer-side application/workload metrics, subject to reasonable confidentiality and security requirements.</li>
+      <li><b>Good-faith determination.</b> The parties will make a good-faith determination of the existence, cause, and duration of the SLA event based on the evidence, including both parties' monitoring/benchmark data.</li>
+      <li><b>Escalation.</b> If the parties' technical representatives cannot agree within 5 business days after the joint review meeting, the dispute will be escalated to each party's designated manager for resolution in good faith.</li>
+      <li><b>Deadlock.</b> If the parties still cannot agree within 10 business days after escalation, the dispute will be handled under the dispute resolution provisions of the Terms.</li>
+    </ul></div>
+</div>
+</div>
+</div>`;
+render();
+</script>
