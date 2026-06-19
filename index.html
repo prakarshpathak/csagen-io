@@ -64,6 +64,19 @@
   .calc .big{font-size:15px;border-top:1px solid #2c4a2c;padding-top:7px;margin-top:7px;color:var(--txt)}
   .btn-send{background:#16a34a;color:#fff}
   .btn-send:hover{background:#15803d}
+  .calc .mini{background:var(--panel2);border:1px solid var(--line);color:var(--stat);border-radius:5px;padding:2px 8px;font-size:11px;font-weight:bold;margin-left:6px;vertical-align:middle}
+  .calc .mini:hover{border-color:var(--accent)}
+  .readystrip{border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:14px;font-size:12px;background:var(--panel)}
+  .readystrip h4{margin:0;font-size:13px;color:#fff}
+  .readystrip.ok{border-color:#2c4a2c}
+  .readystrip.warn{border-color:#b45309}
+  .readystrip.err{border-color:#b91c1c}
+  .readystrip ul{margin:6px 0 0;padding-left:18px}
+  .readystrip li{margin:3px 0;line-height:1.4}
+  .readystrip .rsub{margin-top:8px;color:var(--muted)}
+  .readystrip .err-i{color:#f87171}
+  .readystrip .warn-i{color:#fbbf24}
+  .readystrip .ns-i{color:#c4b5fd}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:560px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 34px rgba(0,0,0,.55);z-index:100;font-size:13px;color:var(--txt)}
   .toast.hidden{display:none}
   .toast button{padding:7px 12px;font-size:12px}
@@ -167,7 +180,11 @@ const DRAFT_KEY = 'csa_draft_v1';
 const ADMIN_KEY = 'csa_admin_v1';   // never read/written unless ADMIN
 
 /* confidential, internal-only inputs - separate object, admin paths only */
-const adminState = { salePrice:"", costPerGpu:"" };
+const adminState = { salePrice:"", costPerGpu:"", floor:"", targetMargin:"" };
+/* admin-only cost library: default hourly cost basis ($/GPU-hr) per hardware
+   preset. PLACEHOLDER ESTIMATES - replace with real cost basis. Auto-fills the
+   cost field when a preset is applied. Never leaves Admin Mode. */
+const COST_DEFAULTS = { "H200 NVL":1.10, "H100 SXM":0.85, "B200":1.60, "B300":2.00, "AMD MI300X":1.00 };
 
 /* ---------- Hardware presets ---------- */
 const PRESETS = {
@@ -282,6 +299,17 @@ const state = {
   provSigner:"", provSignerTitle:"",
 };
 
+/* Canonical Key-Term baseline, captured from the defaults at load time. Any
+   deviation is flagged as a non-standard term for legal review. Captured before
+   any draft restore so it always reflects the approved standard. */
+const LEGAL_LABELS = {
+  govLaw:"Governing Law", courts:"Chosen Courts", courtsNonPay:"Chosen Courts (Non-Payment)",
+  provClaims:"Provider Covered Claims", custClaims:"Customer Covered Claims", security:"Security statement",
+  genCap:"General Cap Amount", incCap:"Increased Cap Amount", unlimited:"Unlimited Claims",
+  increased:"Increased Claims", publicity:"Publicity Rights"
+};
+const STANDARD = {}; Object.keys(LEGAL_LABELS).forEach(k=>{ STANDARD[k]=state[k]; });
+
 /* ---------- form builder ---------- */
 function field(label,key,type="text",hint=""){
   const v = state[key]??"";
@@ -298,7 +326,7 @@ function acc(num,title,bodyHtml,collapsed=false){
 }
 function buildForm(){
   const fp = document.getElementById('formpane');
-  let h = "";
+  let h = `<div id="readiness" class="readystrip"></div>`;
 
   h += acc("A","Document &amp; Parties",
     field("Document title (used for filename)","docTitle")+
@@ -418,16 +446,24 @@ function buildForm(){
         <div class="flag">Internal-only. These values never appear in the document, the .doc export, the saved public draft, or the Send-for-Signature payload.</div>
         <div class="row2">
           <div><label class="fl">Sale price / GPU-hour ($)</label>
-            <input type="number" step="0.01" min="0" value="${esc(adminState.salePrice)}" oninput="setAdmin('salePrice',this.value)"></div>
+            <input id="saleInput" type="number" step="0.01" min="0" value="${esc(adminState.salePrice)}" oninput="setAdmin('salePrice',this.value)"></div>
           <div><label class="fl">Hourly cost / GPU ($)</label>
-            <input type="number" step="0.01" min="0" value="${esc(adminState.costPerGpu)}" oninput="setAdmin('costPerGpu',this.value)"></div>
+            <input id="costInput" type="number" step="0.01" min="0" value="${esc(adminState.costPerGpu)}" oninput="setAdmin('costPerGpu',this.value)"></div>
         </div>
+        <div class="row2">
+          <div><label class="fl">Min margin floor (%)</label>
+            <input id="floorInput" type="number" step="1" min="0" max="100" value="${esc(adminState.floor)}" oninput="setAdmin('floor',this.value)"></div>
+          <div><label class="fl">Target margin (%)</label>
+            <input id="targetInput" type="number" step="1" min="0" max="100" value="${esc(adminState.targetMargin)}" oninput="setAdmin('targetMargin',this.value)"></div>
+        </div>
+        <div class="hint">Picking a hardware preset auto-fills the cost from the cost library (placeholder estimates - replace with your actuals). Below-floor deals are blocked on Send.</div>
         <div id="adminCalc"></div>
       </div></div>`;
   }
 
   fp.innerHTML = h;
   renderSpecs();
+  updateReadiness();
   if(ADMIN) updateAdminCalc();
 }
 function renderSpecs(){
@@ -446,7 +482,16 @@ function setPrio(p,f,v){ state.prios[p][f]=v; render(); saveDraft(); }
 function setSpec(i,f,v){ state.specRows[i][f]=v; render(); saveDraft(); }
 function rmSpec(i){ state.specRows.splice(i,1); renderSpecs(); render(); saveDraft(); }
 function addSpec(){ state.specRows.push({label:"",value:""}); renderSpecs(); render(); saveDraft(); }
-function applyPreset(name){ if(!name||!PRESETS[name])return; state.specRows = PRESETS[name].map(r=>({label:r[0],value:r[1]})); renderSpecs(); render(); saveDraft(); }
+function applyPreset(name){
+  if(!name||!PRESETS[name])return;
+  state.specRows = PRESETS[name].map(r=>({label:r[0],value:r[1]}));
+  if(ADMIN && COST_DEFAULTS[name]!=null){           // cost library auto-fill
+    adminState.costPerGpu = String(COST_DEFAULTS[name]); saveAdmin();
+    const ci=document.getElementById('costInput'); if(ci) ci.value=adminState.costPerGpu;
+  }
+  renderSpecs(); render(); saveDraft();
+  if(ADMIN) updateAdminCalc();
+}
 function setNodes(v){ state.nodeCount=v; const el=document.getElementById('totalGpus'); if(el) el.innerHTML=totalGpusLabel(); render(); if(ADMIN) updateAdminCalc(); saveDraft(); }
 function setSlaTier(v){ state.slaTier=v; state.availTarget=slaAvail(v); render(); saveDraft(); }
 function setPayTerms(v){ state.payTerms=v; render(); saveDraft(); }
@@ -467,20 +512,83 @@ function payPeriodText(){
   }
 }
 function money(n){ return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function marginPctOf(sale,cost){ return (sale!==null&&cost!==null&&sale>0) ? (sale-cost)/sale*100 : null; }
+/* admin-only: returns a blocking message if the current margin is below floor */
+function marginBlocker(){
+  if(!ADMIN) return null;
+  const sale=num(adminState.salePrice), cost=num(adminState.costPerGpu), floor=num(adminState.floor);
+  const m=marginPctOf(sale,cost);
+  if(floor===null||m===null) return null;
+  return m<floor ? `Gross margin ${m.toFixed(1)}% is below the ${floor}% floor` : null;
+}
+function useSuggestedPrice(p){
+  adminState.salePrice=String(p); saveAdmin();
+  const si=document.getElementById('saleInput'); if(si) si.value=adminState.salePrice;
+  updateAdminCalc();
+}
 /* live margin readout - admin only; writes into #adminCalc */
 function updateAdminCalc(){
   if(!ADMIN) return;
   const el=document.getElementById('adminCalc'); if(!el) return;
   const sale=num(adminState.salePrice), cost=num(adminState.costPerGpu);
-  if(sale===null||cost===null){ el.innerHTML='<div class="hint">Enter sale price and cost to compute margin.</div>'; return; }
-  const perHr=sale-cost, gpus=totalGpus();
-  const monthlyPerGpu=perHr*BILLING_HOURS, monthlyTotal=monthlyPerGpu*gpus;
-  const cls=perHr>=0?'pos':'neg';
+  const floor=num(adminState.floor), target=num(adminState.targetMargin);
+  const gpus=totalGpus(), months=parseInt(state.subPeriod,10);
+  let pre='';
+  if(target!==null && target>=0 && target<100 && cost!==null){   // reverse pricing
+    const suggested=cost/(1-target/100);
+    pre+=`<div class="row"><span>Suggested price for ${target}% margin</span><span class="v">${money(suggested)} <button class="mini" onclick="useSuggestedPrice(${suggested.toFixed(4)})">use</button></span></div>`;
+  }
+  if(sale===null||cost===null){
+    el.innerHTML=`<div class="calc">${pre}<div class="hint">Enter sale price and cost to compute margin.</div></div>`;
+    return;
+  }
+  const perHr=sale-cost, cls=perHr>=0?'pos':'neg';
+  const m=marginPctOf(sale,cost), below=(floor!==null&&m!==null&&m<floor);
+  let marginRow='';
+  if(m!==null){
+    marginRow=`<div class="row ${below?'neg':'pos'}"><span>Gross margin${floor!==null?` (floor ${floor}%)`:''}</span><span class="v">${m.toFixed(1)}%${below?' &#9888; BELOW FLOOR':''}</span></div>`;
+  }
+  let tcv='';
+  if(gpus && !isNaN(months) && months>0){
+    tcv=`<div class="row big ${cls}"><span>TCV (${months} mo)</span><span class="v">${money(sale*BILLING_HOURS*gpus*months)}</span></div>
+      <div class="row ${cls}"><span>Gross margin (${months} mo)</span><span class="v">${money(perHr*BILLING_HOURS*gpus*months)}</span></div>`;
+  }
   el.innerHTML=`<div class="calc">
+    ${pre}${marginRow}
     <div class="row ${cls}"><span>Net profit / GPU-hour</span><span class="v">${money(perHr)}</span></div>
-    <div class="row ${cls}"><span>Net profit / GPU / month (${BILLING_HOURS}h)</span><span class="v">${money(monthlyPerGpu)}</span></div>
-    <div class="row big ${cls}"><span>Net monthly margin (${gpus.toLocaleString()} GPUs)</span><span class="v">${money(monthlyTotal)}</span></div>
+    <div class="row ${cls}"><span>Net profit / GPU / month (${BILLING_HOURS}h)</span><span class="v">${money(perHr*BILLING_HOURS)}</span></div>
+    <div class="row big ${cls}"><span>Net monthly margin (${gpus.toLocaleString()} GPUs)</span><span class="v">${money(perHr*BILLING_HOURS*gpus)}</span></div>
+    ${tcv}
   </div>`;
+}
+
+/* ============ READINESS (public) ============ */
+function isPlaceholder(s){ return !s || !String(s).trim() || /\[[^\]]*\]/.test(String(s)); }
+function runReadiness(){
+  const errors=[], warnings=[], nonStandard=[];
+  if(isPlaceholder(state.customerName)) errors.push('Customer legal name not filled');
+  if(!(parseInt(state.nodeCount,10)>0))  errors.push('Number of nodes not set');
+  if(isPlaceholder(state.fee))           errors.push('Cloud Service Fee not filled');
+  if(isPlaceholder(state.startDate))     errors.push('Subscription Start Date not set');
+  if(isPlaceholder(state.subPeriod))     errors.push('Subscription Period not set');
+  if(isPlaceholder(state.effDate))       warnings.push('Effective Date is a placeholder');
+  if(isPlaceholder(state.customerAddr))  warnings.push('Customer notice address is empty');
+  if(!state.provSigner||!state.provSigner.trim()) warnings.push('io.net signer name is empty');
+  if(state.pocMode==='paid' && isPlaceholder(state.pocFee)) warnings.push('Paid POC fee not set');
+  Object.keys(LEGAL_LABELS).forEach(k=>{ if(state[k]!==STANDARD[k]) nonStandard.push(LEGAL_LABELS[k]); });
+  return {errors,warnings,nonStandard};
+}
+function updateReadiness(){
+  const el=document.getElementById('readiness'); if(!el) return;
+  const r=runReadiness();
+  const cls=r.errors.length?'err':((r.warnings.length||r.nonStandard.length)?'warn':'ok');
+  const head=r.errors.length?'&#10007; Not ready to send'
+    :((r.warnings.length||r.nonStandard.length)?'&#9888; Review before sending':'&#10003; Ready to send');
+  let h=`<h4>${head}</h4>`;
+  if(r.errors.length) h+='<ul>'+r.errors.map(e=>`<li class="err-i">${esc(e)}</li>`).join('')+'</ul>';
+  if(r.nonStandard.length) h+=`<div class="rsub">Non-standard terms (flagged for legal review):</div><ul>`+r.nonStandard.map(n=>`<li class="ns-i">${esc(n)}</li>`).join('')+'</ul>';
+  if(r.warnings.length) h+=`<div class="rsub">Warnings:</div><ul>`+r.warnings.map(w=>`<li class="warn-i">${esc(w)}</li>`).join('')+'</ul>';
+  el.className='readystrip '+cls; el.innerHTML=h;
 }
 
 /* ============ SESSION INSURANCE (localStorage autosave) ============ */
@@ -523,7 +631,8 @@ function buildSignaturePayload(){
     commercial: { fee: state.fee, billingHours: BILLING_HOURS, paymentTerms: state.payTerms, paymentPeriod: payPeriodText(), invoicePeriod: state.invPeriod },
     sla: { tier: state.slaTier, availabilityTarget: state.availTarget, creditCap: state.creditCap, monthlyCreditCap: state.monthlyCap, support: state.prios },
     legal: { effectiveDate: state.effDate, governingLaw: state.govLaw, chosenCourts: state.courts, publicity: state.publicity },
-    poc: state.pocMode==='none' ? null : { mode: state.pocMode, hours: state.pocHours, fee: state.pocFee }
+    poc: state.pocMode==='none' ? null : { mode: state.pocMode, hours: state.pocHours, fee: state.pocFee },
+    review: (function(){ const r=runReadiness(); return { nonStandardTerms: r.nonStandard, openWarnings: r.warnings }; })()
   };
 }
 const WEBHOOK_URL = ""; // set to the n8n webhook URL to enable live sending
@@ -536,9 +645,17 @@ function postToWebhook(payload){
   return Promise.resolve();
 }
 function sendForSignature(){
+  const r = runReadiness();
+  const blockers = r.errors.slice();
+  const mb = marginBlocker(); if(mb) blockers.push(mb);   // admin-only margin floor
+  if(blockers.length){
+    flashToast('Cannot send - fix first: ' + blockers.join('; '));
+    return;
+  }
   const payload = buildSignaturePayload();
   postToWebhook(payload);
-  flashToast(`Signature payload logged to console (${(payload.hardware.totalGpus||0).toLocaleString()} GPUs). Webhook integration pending.`);
+  const ns = r.nonStandard.length ? ` - ${r.nonStandard.length} non-standard term(s) flagged for legal` : '';
+  flashToast(`Signature payload logged to console (${(payload.hardware.totalGpus||0).toLocaleString()} GPUs)${ns}. Webhook integration pending.`);
 }
 
 /* ---------- Standard Template (replaces the old Fluence example) ---------- */
@@ -563,6 +680,7 @@ function loadStandardTemplate(){
     availTarget:slaAvail("standard"),
     creditCap:"20", monthlyCap:"50"
   });
+  Object.assign(state, STANDARD);   // reset Key Terms to the canonical standard
   buildForm(); render(); saveDraft();
 }
 
@@ -714,6 +832,7 @@ function render(){
   document.getElementById('doc').innerHTML =
     `<table class="pframe"><thead><tr><td>${runHeader()}</td></tr></thead>`
     + `<tbody><tr><td>${documentBody()}</td></tr></tbody></table>`;
+  updateReadiness();
 }
 
 /* ---------- Export ---------- */
