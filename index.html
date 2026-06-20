@@ -255,6 +255,7 @@ const state = {
   dealName:"",
   customerName:"[INSERT NAME]",
   customerAddr:"",
+  signerEmail:"",
   providerName:"IO.NET Inc.",
 
   pocMode:"none", pocHours:"", pocFee:"",
@@ -332,7 +333,8 @@ function buildForm(){
     field("Document title (used for filename)","docTitle")+
     field("Deal / subtitle line (shown under title)","dealName","text","e.g. Fluence | 64-Node H200 NVL | 24 Months")+
     field("Customer legal name","customerName")+
-    field("Customer notice address / email","customerAddr","textarea")
+    field("Customer notice address / email","customerAddr","textarea")+
+    field("Customer signer email (for e-signature)","signerEmail","text","Used as the DocuSign recipient when you click Send for Signature.")
   );
 
   h += acc("B","Proof of Concept (POC)",
@@ -635,27 +637,46 @@ function buildSignaturePayload(){
     review: (function(){ const r=runReadiness(); return { nonStandardTerms: r.nonStandard, openWarnings: r.warnings }; })()
   };
 }
-const WEBHOOK_URL = ""; // set to the n8n webhook URL to enable live sending
-function postToWebhook(payload){
-  if(WEBHOOK_URL){
-    return fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  }
-  // placeholder until the webhook is connected
-  console.log('[CSA] Send for Signature payload (webhook placeholder):', payload);
-  return Promise.resolve();
+/* Set this to your deployed serverless endpoint (e.g. https://<app>.vercel.app/api/sign
+   or https://<host>/api/sign). Empty = placeholder mode (logs payload to console). */
+const WEBHOOK_URL = "";
+function isEmail(s){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s||'').trim()); }
+function resolveSignerEmail(){
+  const e=(state.signerEmail||'').trim();
+  if(isEmail(e)) return e;
+  return isEmail(state.customerAddr) ? state.customerAddr.trim() : '';   // fall back to notice email
 }
-function sendForSignature(){
+async function sendForSignature(){
   const r = runReadiness();
   const blockers = r.errors.slice();
   const mb = marginBlocker(); if(mb) blockers.push(mb);   // admin-only margin floor
-  if(blockers.length){
-    flashToast('Cannot send - fix first: ' + blockers.join('; '));
+
+  if(!WEBHOOK_URL){                       // placeholder mode - no backend configured
+    if(blockers.length){ flashToast('Cannot send - fix first: '+blockers.join('; ')); return; }
+    console.log('[CSA] Send for Signature payload (no WEBHOOK_URL set):', buildSignaturePayload());
+    const ns = r.nonStandard.length ? ` - ${r.nonStandard.length} non-standard term(s) flagged for legal` : '';
+    flashToast(`Logged payload to console${ns}. Set WEBHOOK_URL to send to DocuSign.`);
     return;
   }
-  const payload = buildSignaturePayload();
-  postToWebhook(payload);
-  const ns = r.nonStandard.length ? ` - ${r.nonStandard.length} non-standard term(s) flagged for legal` : '';
-  flashToast(`Signature payload logged to console (${(payload.hardware.totalGpus||0).toLocaleString()} GPUs)${ns}. Webhook integration pending.`);
+
+  const email = resolveSignerEmail();
+  if(!email) blockers.push('Customer signer email is required (Section A)');
+  if(blockers.length){ flashToast('Cannot send - fix first: '+blockers.join('; ')); return; }
+
+  flashToast('Sending to DocuSign...');
+  try{
+    const body = {
+      signer: { name: state.customerName, email },
+      document: { html: buildSigningHtml(), filename: docFilename()+'.html' },
+      emailSubject: 'Please sign: '+state.docTitle,
+      deal: buildSignaturePayload()      // public contract data only (no margin/cost)
+    };
+    const res = await fetch(WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok || j.ok===false){ flashToast('Send failed: '+(j.error || (j.errors&&j.errors.join(', ')) || ('HTTP '+res.status))); return; }
+    if(j.dryRun){ console.log('[CSA] dry-run result', j); flashToast('Dry run OK - function reached; DocuSign not yet configured.'); return; }
+    flashToast('Sent for signature to '+email+(j.envelopeId?` (envelope ${j.envelopeId})`:'')+'.');
+  }catch(e){ flashToast('Send failed: '+(e.message||e)); }
 }
 
 /* ---------- Standard Template (replaces the old Fluence example) ---------- */
@@ -836,9 +857,8 @@ function render(){
 }
 
 /* ---------- Export ---------- */
-function buildFullHtml(){
-  const inner = documentBody();
-  const css = `
+/* shared document styling used by both the Word export and the e-signature doc */
+const DOC_CSS = `
     body{font-family:Arial,sans-serif;color:#111127;font-size:11pt;line-height:1.5}
     .logo{font-size:22px;font-weight:bold;color:#7c3aed}.logo b{color:#111127}
     .logorule{border:none;border-bottom:2px solid #7c3aed;margin:6px 0 18px}
@@ -864,15 +884,33 @@ function buildFullHtml(){
     .terms ol.alpha{margin:6px 0 6px 18px;padding-left:14px}.terms ol.alpha>li{margin:4px 0;font-size:10.5pt}
     .terms ul.dash{margin:6px 0 6px 18px;padding-left:14px}.terms ul.dash>li{margin:3px 0;font-size:10.5pt}
     .terms p.sub{margin:5px 0 5px 18px;font-size:10.5pt}
-    .pagebreak{page-break-before:always}
+    .pagebreak{page-break-before:always}`;
+const MSO_CSS = `
     /* Word: named section page with a running header (logo on every page) */
     @page Section1{size:8.5in 11.0in;margin:1.0in 1.0in 1.0in 1.0in;mso-header-margin:.5in;mso-footer-margin:.5in;mso-header:h1;}
     div.Section1{page:Section1}
     p.MsoHeader{margin:0}
     p.MsoHeader.msohdr{padding-bottom:3pt;border-bottom:1pt solid #7c3aed}
     .msohdr img{height:15pt;width:auto}
-    @page{size:8.5in 11in;margin:1in}
-  `;
+    @page{size:8.5in 11in;margin:1in}`;
+function docFilename(){ return (state.docTitle||"CSA").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_"); }
+/* clean, self-contained HTML for DocuSign. DocuSign does not honor Word MSO
+   headers, so the logo letterhead is placed in the body flow via the thead. */
+function buildSigningHtml(){
+  const css = DOC_CSS + `
+    .pframe{width:100%;border-collapse:collapse}
+    .pframe>thead{display:table-header-group}
+    .pframe>thead>tr>td,.pframe>tbody>tr>td{padding:0;border:none;vertical-align:top}
+    .rhead img{height:22px;width:auto;display:block}
+    .rhead hr{border:none;border-bottom:2px solid #7c3aed;margin:6px 0 14px}
+    @page{size:8.5in 11in;margin:1in}`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(state.docTitle)}</title><style>${css}</style></head><body>`
+    + `<table class="pframe"><thead><tr><td>${runHeader()}</td></tr></thead><tbody><tr><td>${documentBody()}</td></tr></tbody></table>`
+    + `</body></html>`;
+}
+function buildFullHtml(){
+  const inner = documentBody();
+  const css = DOC_CSS + MSO_CSS;
   return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(state.docTitle)}</title>
   <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
   <style>${css}</style></head><body>
@@ -883,7 +921,7 @@ function buildFullHtml(){
 function downloadDoc(){
   const html = buildFullHtml();
   const blob = new Blob(['\ufeff'+html],{type:'application/msword'});
-  const name = (state.docTitle||"CSA").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")+".doc";
+  const name = docFilename()+".doc";
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }

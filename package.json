@@ -1,0 +1,11 @@
+{
+  "name": "csagen-io-sign",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless DocuSign signing endpoint for the io.net CSA Generator",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

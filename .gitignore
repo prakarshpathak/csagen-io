@@ -1,3 +1,7 @@
 .DS_Store
 .logo_work/
 .check/
+node_modules/
+.vercel
+.env
+.env.*
