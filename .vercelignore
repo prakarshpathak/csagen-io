@@ -1,0 +1,5 @@
+# Vercel serves the static app (index.html) + the serverless function (api/sign.js).
+# server.js is only for the Hostinger / VPS deployment path. Exclude it so Vercel
+# does not auto-detect it as a Node "server entrypoint" and skip the static site.
+server.js
+BACKEND.md
